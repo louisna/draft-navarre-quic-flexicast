@@ -69,17 +69,19 @@ Table of Contents
 
    1.  Introduction
    2.  Conventions and Definitions
-   3.  The new Flexicast QUIC frames
-     3.1.  FC_ANNOUNCE frame
-     3.2.  FC_STATE frame
-       3.2.1.  FC_STATE actions
-     3.3.  FC_KEY frame
-       3.3.1.  FC_KEY algorithms
-   4.  Security Considerations
-   5.  IANA Considerations
-   6.  References
-     6.1.  Normative References
-     6.2.  Informative References
+   3.  Flexicast QUIC
+   4.  Handshake Negotiation and Transport parameter
+   5.  New Frames
+     5.1.  FC_ANNOUNCE frame
+     5.2.  FC_STATE frame
+       5.2.1.  FC_STATE actions
+     5.3.  FC_KEY frame
+       5.3.1.  FC_KEY algorithms
+   6.  Security Considerations
+   7.  IANA Considerations
+   8.  References
+     8.1.  Normative References
+     8.2.  Informative References
    Acknowledgments
    Authors' Addresses
 
@@ -128,7 +130,7 @@ Table of Contents
    BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all
    capitals, as shown here.
 
-   ======= # Flexicast QUIC
+3.  Flexicast QUIC
 
    Multipath QUIC was designed to enable the simultaneous utilization of
    multiple paths to support a single QUIC connection.  A Multipath QUIC
@@ -245,7 +247,37 @@ Table of Contents
    paths, it is authenticated and encrypted using the TLS keys
    associated to each unicast path.
 
-3.  The new Flexicast QUIC frames
+4.  Handshake Negotiation and Transport parameter
+
+   This extension defines a new transport parameter, used to negotiate
+   the use of the flexicast extensiong during the connection handshake,
+   as specified in [QUIC-TRANSPORT].  The new transport parameter is
+   defined as follows:
+
+   *  flexicast_support (current version uses TDB-03): the presence of
+      this transport parameter indicates support of the flexicast
+      extension.  The transport parameter contains two boolean values,
+      respectively indicating support of IPv4 and IPv6 for multicast
+      addresses.  If an endpoint receives the flexicast_support
+      transport parameter with both IPv4 and IPv6 supports set to false
+      (0), it must close the connection with an error type of
+      FC_PROTOCOL_VIOLATION.
+
+   The final support of the flexicast extension is conditioned to the
+   support of the multipath extension, as defined in [MULTIPATH-QUIC].
+   Since a Flexicast flow is a new multipath path, the support of
+   multipath, with sufficient (e.g., at least 2) path ID, is required,
+   as defined in Section 2 of [MULTIPATH-QUIC].
+
+   An endpoint receiving the flexicast_support transport parameter from
+   its peer, without support for multicast MUST ignore the
+   flexicast_support transport parameter, as if the peer does not
+   support the flexicast extension.
+
+   The extension does not change the definition of any transport
+   parameter defined in Section 18.2 of [QUIC-TRANSPORT].
+
+5.  New Frames
 
    All frames defined in this document MUST only be sent in 1-RTT
    packets.
@@ -267,7 +299,7 @@ Table of Contents
    the following frames on the Flexicast flow MUST be trated as a
    connection error of type FC_PROTOCOL_VIOLATION.
 
-3.1.  FC_ANNOUNCE frame
+5.1.  FC_ANNOUNCE frame
 
    The FC_ANNOUNCE frame informs the receiver that a Flexicast flow is
    available or updated.  FC_ANNOUNCE frames MUST NOT be sent by the
@@ -335,7 +367,7 @@ Table of Contents
    TODO: the frame should also contain a Status field to indicate if the
    flexicast flow is retired?
 
-3.2.  FC_STATE frame
+5.2.  FC_STATE frame
 
    The FC_STATE frame informs the endpoint of the state of the Flexicast
    receiver in the Flexicast flow.  FC_STATE frames MAY be sent by both
@@ -366,7 +398,7 @@ Table of Contents
    Sequence number: The monotically increasing sequence number related
    to the advertised Flexicast Flow ID.
 
-   Action: The bit-encoded action, defined in Section Section 3.2.1.
+   Action: The bit-encoded action, defined in Section Section 5.2.1.
 
    FC_STATE frames are ack-eliciting.  If a packet containing an
    FC_STATE frame is considered lost, the peer SHOULD repeat it.
@@ -380,7 +412,7 @@ Table of Contents
    change the status of the receiver within the Flexicast flow indicated
    by the Flexicast Flow ID.
 
-3.2.1.  FC_STATE actions
+5.2.1.  FC_STATE actions
 
    This section lists the defined Actions encoded in an FC_STATE frame.
    An endpoint receiving an unknown value MUST treat it as a connection
@@ -407,7 +439,7 @@ Table of Contents
    MUST_LEAVE (0x04): The source unilaterally decides that the receiver
    MUST leave the Flexicast flow.
 
-3.3.  FC_KEY frame
+5.3.  FC_KEY frame
 
    The FC_KEY frame informs a receiver with the decryption key of a
    Flexicast flow joined by the receiver.  FC_KEY frames MUST NOT be
@@ -447,7 +479,7 @@ Table of Contents
    Key: Byte-sequence of the decryption key of the Flexicast flow.
 
    Algorithm: The bit-encoded algorithm used for decryption, defined in
-   Section Section 3.3.1.
+   Section Section 5.3.1.
 
    FC_KEY frames are ack-eliciting.  If a packet containing an FC_STATE
    frame is considered lost, the peer SHOULD repeat it.
@@ -456,21 +488,21 @@ Table of Contents
    number to notify a new decryption key.  This mechanism can be used to
    provide backward and forward secrecy with dynamic Flexicast groups.
 
-3.3.1.  FC_KEY algorithms
+5.3.1.  FC_KEY algorithms
 
    TODO: define the bit-encoded algorithms.
 
-4.  Security Considerations
+6.  Security Considerations
 
    TODO Security
 
-5.  IANA Considerations
+7.  IANA Considerations
 
    This document has no IANA actions.
 
-6.  References
+8.  References
 
-6.1.  Normative References
+8.1.  Normative References
 
    [QUIC-TRANSPORT]
               Iyengar, J., Ed. and M. Thomson, Ed., "QUIC: A UDP-Based
@@ -487,7 +519,7 @@ Table of Contents
               2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
               May 2017, <https://www.rfc-editor.org/rfc/rfc8174>.
 
-6.2.  Informative References
+8.2.  Informative References
 
    [DIOT]     Diot, C., Levine, B., Lyles, B., Kassem, H., and D.
               Belensiefen, "Deployment issues for the IP multicast
