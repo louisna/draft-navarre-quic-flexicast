@@ -78,11 +78,12 @@ Table of Contents
        5.2.1.  FC_STATE actions
      5.3.  FC_KEY frame
        5.3.1.  FC_KEY algorithms
-   6.  Security Considerations
-   7.  IANA Considerations
-   8.  References
-     8.1.  Normative References
-     8.2.  Informative References
+   6.  Discussion
+   7.  Security Considerations
+   8.  IANA Considerations
+   9.  References
+     9.1.  Normative References
+     9.2.  Informative References
    Acknowledgments
    Authors' Addresses
 
@@ -118,14 +119,19 @@ Table of Contents
    Multicast extensions to QUIC have already been proposed
    [MULTICAST-QUIC] [I-D.pardue-quic-http-mcast] and [MULTICAST-QUIC].
 
-   This document proposes to start from Multipath QUIC [MULTIPATH-QUIC].
-   Thanks to this recent QUIC extension, a QUIC connection can use
-   several paths simultaneously to exchange information between two
-   hosts.  This document proposes a simple extension to Multipath QUIC
-   that enables to share an additional path between multiple receivers.
-   The destination address of this path can be a multicast IP address
-   and rely on a multicast forwarding mechanism (e.g., IP Multicast) to
+   Flexicast QUIC extends Multipath QUIC [MULTIPATH-QUIC].  Thanks to
+   this recent QUIC extension, a QUIC connection can use several paths
+   simultaneously to exchange information between two hosts.  This
+   document proposes a simple extension to Multipath QUIC that enables
+   to share an additional path between multiple receivers.  The
+   destination address of this path can be a multicast IP address and
+   rely on a multicast forwarding mechanism (e.g., IP Multicast) to
    transmit the packets.
+
+   This document is organized as follows.  After having specified some
+   conventions in Section 2, we provide a brief overview of Flexicast
+   QUIC in Section 3.  We describe in more details the Flexicast QUIC
+   handshake in Section 4 and then the new QUIC frames in Section 5.
 
 2.  Conventions and Definitions
 
@@ -187,7 +193,7 @@ Table of Contents
      S --------------------+-----> R1
      \                     |
       \                    +-----> R2
-       \           Unicast network
+       \            Unicast network
         +------------------------> R3
 
      Figure 1: A Flexicast QUIC connection where source S sends a data
@@ -305,7 +311,7 @@ Table of Contents
    as specified in [QUIC-TRANSPORT].  The new transport parameter is
    defined as follows:
 
-   *  flexicast_support (current version uses TDB-03): the presence of
+   *  flexicast_support (current version uses TBD-03): the presence of
       this transport parameter indicates support of the flexicast
       extension.  The transport parameter contains two boolean values,
       respectively indicating support of IPv4 and IPv6 for multicast
@@ -543,17 +549,76 @@ Table of Contents
 
    TODO: define the bit-encoded algorithms.
 
-6.  Security Considerations
+6.  Discussion
 
-   TODO Security
+   This document has defined a simple extension to Multipath QUIC that
+   enables a QUIC connection to simulatenously use unicast paths and
+   multicast trees to deliver the same data to a set of receivers.  The
+   proposed protocol can be extended in different ways and improvements
+   will be proposed in separate documents.  We briefly describe some of
+   these possible extensions.
 
-7.  IANA Considerations
+   This version of Flexicast QUIC uses the existing QUIC mechanisms to
+   retransmit lost frames.  It is well known that Forward Erasure
+   Correction can improve the performance of multicast transmission when
+   losses occur.  Several authors have proposed techniques to add
+   Forward Erasure Correction to QUIC [QUIRL], [rQUIC],
+   [I-D.draft-michel-quic-fec].  FEC can be sent a priori to enable
+   receivers to recover from different packet losses without having to
+   wait for retransmissions or a posteriori by sending a repair symbol
+   that enables different receivers to recover different lost frames.
 
-   This document has no IANA actions.
+   This version of Flexicast QUIC uses a key shared between the source
+   and all receivers to authenticate and encrypt the data sent by the
+   source over the multicast tree.  A malicious receiver who has
+   received the shared keys could inject fake data over the multicast
+   tree provided that it can spoof the IP address of the source.
+   Techniques have been proposed to authenticate the frames sent by the
+   source [I-D.draft-krose-multicast-security].  Subsequent documents
+   will detail how Flexicast QUIC can be extended to support such
+   techniques.
 
-8.  References
+   Multipath QUIC assumes that the congestion control mechanism operates
+   per path.  For Flexicast QUIC, a different congestion control
+   mechanism will be required for the unicast paths and the multicast
+   tree.  For the former, the QUIC congestion control mechanisms
+   [RFC9002] are applicable.  For the latter, multicast specific
+   congestion control mechanisms such as [RFC4654] will be required.
+   The current prototype uses a variant of the CUBIC congestion control.
 
-8.1.  Normative References
+7.  Security Considerations
+
+   To be provided in the next version of this document.
+
+8.  IANA Considerations
+
+   IANA is requested to assign three new QUIC frame types from the "QUIC
+   Frame Types" registry available at
+   https://www.iana.org/assignments/quic/quic.xhtml#quic-frame-types
+
+   *  TBD-00 for the FC_ANNOUNCE frame defined in Section 5.1
+
+   *  TBD-01 for the FC_STATE frame defined in Section 5.2
+
+   *  TBD-02 for the FC_KEY frame defined in Section 5.3
+
+   IANA is requested to assign a new QUIC transport parameter from the
+   "QUIC Transport Parameters" registry available at
+   https://www.iana.org/assignments/quic/quic.xhtml#quic-transport
+
+   *  TBD-03 for the flexicast_support transport parameter defined in
+      Section 4
+
+9.  References
+
+9.1.  Normative References
+
+   [MULTIPATH-QUIC]
+              Liu, Y., Ma, Y., De Coninck, Q., Bonaventure, O., Huitema,
+              C., and M. Kühlewind, "Multipath Extension for QUIC", Work
+              in Progress, Internet-Draft, draft-ietf-quic-multipath-10,
+              8 July 2024, <https://datatracker.ietf.org/doc/html/draft-
+              ietf-quic-multipath-10>.
 
    [QUIC-TRANSPORT]
               Iyengar, J., Ed. and M. Thomson, Ed., "QUIC: A UDP-Based
@@ -570,12 +635,29 @@ Table of Contents
               2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
               May 2017, <https://www.rfc-editor.org/rfc/rfc8174>.
 
-8.2.  Informative References
+9.2.  Informative References
 
    [DIOT]     Diot, C., Levine, B., Lyles, B., Kassem, H., and D.
-              Belensiefen, "Deployment issues for the IP multicast
-              service and architecture", IEEE network, vol. 14, no 1, p.
-              78-88. , 2000.
+              Balensiefen, "Deployment issues for the IP multicast
+              service and architecture", Institute of Electrical and
+              Electronics Engineers (IEEE), IEEE Network vol. 14, no. 1,
+              pp. 78-88, DOI 10.1109/65.819174, 2000,
+              <https://doi.org/10.1109/65.819174>.
+
+   [I-D.draft-krose-multicast-security]
+              Rose, K. and J. Holland, "Security and Privacy
+              Considerations for Multicast Transports", Work in
+              Progress, Internet-Draft, draft-krose-multicast-security-
+              06, 27 December 2023,
+              <https://datatracker.ietf.org/doc/html/draft-krose-
+              multicast-security-06>.
+
+   [I-D.draft-michel-quic-fec]
+              Michel, F. and O. Bonaventure, "Forward Erasure Correction
+              for QUIC loss recovery", Work in Progress, Internet-Draft,
+              draft-michel-quic-fec-01, 23 October 2023,
+              <https://datatracker.ietf.org/doc/html/draft-michel-quic-
+              fec-01>.
 
    [I-D.pardue-quic-http-mcast]
               Pardue, L., Bradbury, R., and S. Hurst, "Hypertext
@@ -591,12 +673,12 @@ Table of Contents
               <https://datatracker.ietf.org/doc/html/draft-jholland-
               quic-multicast-05>.
 
-   [MULTIPATH-QUIC]
-              Liu, Y., Ma, Y., De Coninck, Q., Bonaventure, O., Huitema,
-              C., and M. Kühlewind, "Multipath Extension for QUIC", Work
-              in Progress, Internet-Draft, draft-ietf-quic-multipath-10,
-              8 July 2024, <https://datatracker.ietf.org/doc/html/draft-
-              ietf-quic-multipath-10>.
+   [QUIRL]    Michel, F. and O. Bonaventure, "QUIRL: Flexible QUIC Loss
+              Recovery for Low Latency Applications", Institute of
+              Electrical and Electronics Engineers (IEEE), IEEE/ACM
+              Transactions on Networking pp. 1-12,
+              DOI 10.1109/tnet.2024.3453759, 2024,
+              <https://doi.org/10.1109/tnet.2024.3453759>.
 
    [RFC1112]  Deering, S., "Host extensions for IP multicasting", STD 5,
               RFC 1112, DOI 10.17487/RFC1112, August 1989,
@@ -606,9 +688,25 @@ Table of Contents
               IP", RFC 4607, DOI 10.17487/RFC4607, August 2006,
               <https://www.rfc-editor.org/rfc/rfc4607>.
 
+   [RFC4654]  Widmer, J. and M. Handley, "TCP-Friendly Multicast
+              Congestion Control (TFMCC): Protocol Specification",
+              RFC 4654, DOI 10.17487/RFC4654, August 2006,
+              <https://www.rfc-editor.org/rfc/rfc4654>.
+
+   [RFC9002]  Iyengar, J., Ed. and I. Swett, Ed., "QUIC Loss Detection
+              and Congestion Control", RFC 9002, DOI 10.17487/RFC9002,
+              May 2021, <https://www.rfc-editor.org/rfc/rfc9002>.
+
    [RFC9293]  Eddy, W., Ed., "Transmission Control Protocol (TCP)",
               STD 7, RFC 9293, DOI 10.17487/RFC9293, August 2022,
               <https://www.rfc-editor.org/rfc/rfc9293>.
+
+   [rQUIC]    Garrido, P., Sanchez, I., Ferlin, S., Aguero, R., and O.
+              Alay, "rQUIC: Integrating FEC with QUIC for Robust
+              Wireless Communications", IEEE, 2019 IEEE Global
+              Communications Conference (GLOBECOM),
+              DOI 10.1109/globecom38437.2019.9013401, December 2019,
+              <https://doi.org/10.1109/globecom38437.2019.9013401>.
 
 Acknowledgments
 
