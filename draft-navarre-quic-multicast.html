@@ -4,11 +4,13 @@
 <meta charset="utf-8">
 <meta content="Common,Latin" name="scripts">
 <meta content="initial-scale=1.0" name="viewport">
-<title>Extending QUIC with multicast capabilities</title>
+<title>Flexicast QUIC: combining unicast and multicast in a single QUIC connection</title>
 <meta content="Louis Navarre" name="author">
 <meta content="Olivier Bonaventure" name="author">
 <meta content="
-       TODO Abstract 
+       This document proposes Flexicast QUIC, a simple extension to Multipath
+QUIC that enables a source to send the same information to a set of
+receivers using a combination of unicast paths and multicast trees. 
     " name="description">
 <meta content="xml2rfc 3.23.2" name="generator">
 <meta content="quic" name="keyword">
@@ -1025,7 +1027,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
 <table class="ears">
 <thead><tr>
 <td class="left">Internet-Draft</td>
-<td class="center">MC-QUIC</td>
+<td class="center">FC-QUIC</td>
 <td class="right">October 2024</td>
 </tr></thead>
 <tfoot><tr>
@@ -1062,10 +1064,12 @@ svg :is([fill="white"], [fill^="#fff"]) {
 </dd>
 </dl>
 </div>
-<h1 id="title">Extending QUIC with multicast capabilities</h1>
+<h1 id="title">Flexicast QUIC: combining unicast and multicast in a single QUIC connection</h1>
 <section id="section-abstract">
       <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
-<p id="section-abstract-1">TODO Abstract<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+<p id="section-abstract-1">This document proposes Flexicast QUIC, a simple extension to Multipath
+QUIC that enables a source to send the same information to a set of
+receivers using a combination of unicast paths and multicast trees.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
 </section>
 <section class="note rfcEditorRemove" id="section-note.1">
       <h2 id="name-about-this-document">
@@ -1137,7 +1141,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
             <p id="section-toc.1-1.2.1" class="keepWithNext"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-conventions-and-definitions" class="internal xref">Conventions and Definitions</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
-            <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-new-frames" class="internal xref">New Frames</a></p>
+            <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-the-new-flexicast-quic-fram" class="internal xref">The new Flexicast QUIC frames</a></p>
 <ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.1">
                 <p id="section-toc.1-1.3.2.1.1" class="keepWithNext"><a href="#section-3.1" class="auto internal xref">3.1</a>.  <a href="#name-fc_announce-frame" class="internal xref">FC_ANNOUNCE frame</a></p>
@@ -1192,7 +1196,34 @@ svg :is([fill="white"], [fill^="#fff"]) {
       <h2 id="name-introduction">
 <a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
       </h2>
-<p id="section-1-1">TODO Introduction<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-1">Starting from the initially efforts of Steve Deering <span>[<a href="#RFC1112" class="cite xref">RFC1112</a>]</span>, the IETF
+has developed a range of IP multicast solutions that enable the efficient
+transmission of a single packet to a group of receivers. In this document,
+we focus on Source-Specific Multicast for IP <span>[<a href="#RFC4607" class="cite xref">RFC4607</a>]</span>, but the solution
+proposed could also be applied to other forms of IP Multicast.<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-2">Although IP Multicast is not a new solution, it is not as widely used by
+applications as transport protocols like TCP <span>[<a href="#RFC9293" class="cite xref">RFC9293</a>]</span> or QUIC <span>[<a href="#QUIC-TRANSPORT" class="cite xref">QUIC-TRANSPORT</a>]</span>.
+Current IP Multicast applications include IP TV distribution in ISP networks
+and trading services for financial institutions. Many reasons explain the difficulty
+of deploying IP Multicast <span>[<a href="#DIOT" class="cite xref">DIOT</a>]</span>. From the application's viewpoint, a
+key challenge with IP Multicast is that even if there is a unicast path
+between two hosts, there is no guarantee that it will be possible to create and
+maintain a multicast tree between these two hosts to efficiently exchange
+data using IP multicast. For this reason, many applications that send
+the same information to a large set of receivers like streaming services
+or software updates, still rely on TCP or QUIC. This is inefficient from
+the network viewpoint as the network carries the same information multiple
+times.<a href="#section-1-2" class="pilcrow">¶</a></p>
+<p id="section-1-3">The deployment of QUIC opens an interesting opportunity to reconsider the
+utilization of IP Multicast. As QUIC runs above UDP, it could easily use
+IP multicast to deliver information along multicast trees. Multicast
+extensions to QUIC have already been proposed <span>[<a href="#MULTICAST-QUIC" class="cite xref">MULTICAST-QUIC</a>]</span>
+        <span>[<a href="#I-D.pardue-quic-http-mcast" class="cite xref">I-D.pardue-quic-http-mcast</a>]</span>.<a href="#section-1-3" class="pilcrow">¶</a></p>
+<p id="section-1-4">This document proposes to start from Multipath QUIC <span>[<a href="#MULTIPATH-QUIC" class="cite xref">MULTIPATH-QUIC</a>]</span>. Thanks
+to this recent QUIC extension, a QUIC connection can use several paths
+simultaneously to exchange information between two hosts. This document
+proposes a simple extensions to Multipath QUIC that enables the
+utilization of an IP Multicast tree as one additional path.<a href="#section-1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="conventions-and-definitions">
@@ -1204,12 +1235,121 @@ svg :is([fill="white"], [fill^="#fff"]) {
 "<span class="bcp14">MAY</span>", and "<span class="bcp14">OPTIONAL</span>" in this document are to be interpreted as
 described in BCP 14 <span>[<a href="#RFC2119" class="cite xref">RFC2119</a>]</span> <span>[<a href="#RFC8174" class="cite xref">RFC8174</a>]</span> when, and only when, they
 appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶</a></p>
+<p id="section-2-2">=======
+# Flexicast QUIC<a href="#section-2-2" class="pilcrow">¶</a></p>
+<p id="section-2-3">Multipath QUIC was designed to enable the simultaneous utilization of multiple
+paths to support a single QUIC connection. A Multipath QUIC connection
+starts with a handshake like a regular QUIC connection, besides the utilization
+of the initial_max_path_id to negotiate the multipath extension. This parameter
+specifies the maximum path identifier that an endpoint is willing to maintain
+at connection Establishment. Multipath QUIC requires the utilization of non-zero
+connection identifiers and uses explicit path identifiers and one packet number
+space per path. Multipath QUIC assumes that the additional paths are created
+by the client using the server address of the initial paths.<a href="#section-2-3" class="pilcrow">¶</a></p>
+<p id="section-2-4">Consider as an example a smartphone that uses Multipath QUIC. This smartphone
+has a Wi-Fi and a cellular interface. The smartphone has created the QUIC
+connection over the cellular interface. After the handshake, the smartphone
+and the server have exchanged additional connection identifiers. To create a
+new path over the Wi-Fi interface, the smartphone sends a PATH_CHALLENGE over
+this path using one of the connection identifiers advertised by the server.
+The server replies with a PATH_RESPONSE using one of the connection
+identifiers advertised by the smartphone. The smartphone confirms the establishment
+of the second path using a PATH_RESPONSE. At this point that smartphone and the
+server have two paths to exchange data: the first over the cellular interface
+and the second over the Wi-Fi interface. Each path uses a different sequence number
+space, but QUIC packets are encrypted using the same connection keys over both paths.
+When a QUIC packet needs to be send, the packet scheduler selects the relevant path.
+If a QUIC frame is lost over one path, it can be retransmitted over the other
+paths.<a href="#section-2-4" class="pilcrow">¶</a></p>
+<p id="section-2-5">To illustrate the operation of Flexicast QUIC, we consider a scenario with
+one server, S, and three receivers: R1, R2 and R3. R1 and R2 are attached to
+a network where it is possible to create an IP multicast tree from S to R1 and R2.
+R3 is attached to an IP network where unicast works perfectly, but IP multicast
+does not. Once the Flexicast QUIC connection will be established, S will be
+able to send data along the multicast tree to reach R1 and R2 and using unicast
+to reach R3. This is illustrated in the ..<a href="#section-2-5" class="pilcrow">¶</a></p>
+<span id="name-a-flexicast-quic-connection"></span><div id="figfc1">
+<figure id="figure-1">
+        <div class="alignLeft art-text artwork" id="section-2-6.1">
+<pre>
+  S --------------------+-----&gt; R1
+  \                     |
+   \                    +-----&gt; R2
+    \
+     +------------------------&gt; R3
+
+</pre>
+</div>
+<figcaption><a href="#figure-1" class="selfRef">Figure 1</a>:
+<a href="#name-a-flexicast-quic-connection" class="selfRef">A Flexicast QUIC connection where source S sends a data packet to R1 and R2 using a multicast tree and to R3 using unicast</a>
+        </figcaption></figure>
+</div>
+<p id="section-2-7">A Flexicast QUIC connection starts with a handshake like a regular QUIC
+connection. R1, R2 and R3 establish a connection to S using the flexicast
+and the initial_max_path_id transport parameters. These three QUIC connections
+are glued as a single Flexicast QUIC connection by the server. They are secured
+using the TLS keys derived independently during the handshake. The first path
+of these connections serves as a unicast path for the Flexicast QUIC
+connection between the server and each receiver. This path is used for two very
+different purposes. First, it acts as a control channel and enables the source to
+exchange control information with each receiver. Second, it can be used to transmit
+or retransmit data that cannot be delivered along the multicast tree.<a href="#section-2-7" class="pilcrow">¶</a></p>
+<span id="name-a-flexicast-quic-connection-"></span><div id="figfcq2">
+<figure id="figure-2">
+        <div class="alignLeft art-text artwork" id="section-2-8.1">
+<pre>
+  +========================================+.    / \
+  |+=================================+     |.     |. unicast paths
+  || ============================+   |     |.     |
+  \|/                            |   |     |.    \./
+   S --------------------+-----&gt; R1  |.    |.    / \
+                         |           |.    |.     |
+                         +---------&gt; R2.   |.     |  multicast tree
+                                           |.     |
+                                           R3.   \ /
+</pre>
+</div>
+<figcaption><a href="#figure-2" class="selfRef">Figure 2</a>:
+<a href="#name-a-flexicast-quic-connection-" class="selfRef">A Flexicast QUIC connection is composed of two types of paths: (1) one unicast path between the source and each receiver and (2) a multicast tree from the source to a set of receivers</a>
+        </figcaption></figure>
+</div>
+<p id="section-2-9">Flexicast QUIC modifies Multipath QUIC is several ways to enable the
+utilization of a multicast tree as one of the Multipath QUIC paths. Using an IP
+Multicast tree as a Multipath QUIC path on a connection brings several challenges.<a href="#section-2-9" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-2-10">
+<li id="section-2-10.1">
+          <p id="section-2-10.1.1">An IP multicast tree is unidirectional, in contrast with a Multipath QUIC path<a href="#section-2-10.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-2-10.2">
+          <p id="section-2-10.2.1">An IP multicast tree is identified by a pair &lt;source address, group address&gt;<a href="#section-2-10.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-2-10.3">
+          <p id="section-2-10.3.1">All the receivers attached to an IP Multicast tree receive the same packet<a href="#section-2-10.3.1" class="pilcrow">¶</a></p>
+</li>
+      </ol>
+<p id="section-2-11">Since an IP multicast tree is unidirectional, it is impossible to use the QUIC
+path challenge/response mechanism to create a path along an IP multicast tree.
+Flexicast QUIC only uses path challenge/response on unicast paths. Furthermore,
+the data received over the multicast path cannot be acknowledged over this path
+since it is unidirectional. Flexicast QUIC receivers return acknowledgments
+using MP_ACK frames over the unicast path to provide feedback to the server.<a href="#section-2-11" class="pilcrow">¶</a></p>
+<p id="section-2-12">To join an IP multicast tree, the receivers must be informed of the source
+and group addresses of this tree. The server uses the MC_ANNOUNCE frame to
+advertise the identifier of the multicast tree that the receivers can join.<a href="#section-2-12" class="pilcrow">¶</a></p>
+<p id="section-2-13">The Flexicast QUIC packets that are sent over an IP multicast tree must
+be encrypted and authenticated. However, these packets cannot be encrypted using
+the TLS keys derived during the QUIC connection establishment since each unicast
+path has its own set of TLS keys. To secure the transmission of Flexicast QUIC
+packets along an IP multicast tree, the source generates an independent set of
+security keys and shares them using the MC_ANNOUNCE frame to all receivers over
+the unicast path. Since this frame is sent over the unicast paths, it is authenticated
+and encrypted using the TLS keys associated to each unicast path.<a href="#section-2-13" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="new-frames">
+<div id="the-new-flexicast-quic-frames">
 <section id="section-3">
-      <h2 id="name-new-frames">
-<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-new-frames" class="section-name selfRef">New Frames</a>
+      <h2 id="name-the-new-flexicast-quic-fram">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-the-new-flexicast-quic-fram" class="section-name selfRef">The new Flexicast QUIC frames</a>
       </h2>
 <p id="section-3-1">All frames defined in this document <span class="bcp14">MUST</span> only be sent in 1-RTT packets.<a href="#section-3-1" class="pilcrow">¶</a></p>
 <p id="section-3-2">If an endpoint receives a flexicast-specific frame in a different packet type, it <span class="bcp14">MUST</span> close the connection with an error of type FRAME_ENCODING_ERROR.<a href="#section-3-2" class="pilcrow">¶</a></p>
@@ -1223,9 +1363,9 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
         </h3>
 <p id="section-3.1-1">The FC_ANNOUNCE frame informs the receiver that a Flexicast flow is available or updated.
 FC_ANNOUNCE frames <span class="bcp14">MUST NOT</span> be sent by the receiver. A Flexicast QUIC source receiving an FC_ANNOUNCE frame <span class="bcp14">MUST</span> close the connection with a connection error of type FC_PROTOCOL_VIOLATION.<a href="#section-3.1-1" class="pilcrow">¶</a></p>
-<p id="section-3.1-2">FC_ANNOUNCE frames are formatted as shown in <a href="#fig-fc-announce-frame-format" class="auto internal xref">Figure 1</a>.<a href="#section-3.1-2" class="pilcrow">¶</a></p>
+<p id="section-3.1-2">FC_ANNOUNCE frames are formatted as shown in <a href="#fig-fc-announce-frame-format" class="auto internal xref">Figure 3</a>.<a href="#section-3.1-2" class="pilcrow">¶</a></p>
 <span id="name-fc_announce-frame-format"></span><div id="fig-fc-announce-frame-format">
-<figure id="figure-1">
+<figure id="figure-3">
           <div class="alignLeft art-text artwork" id="section-3.1-3.1">
 <pre>
 FC_ANNOUNCE Frame {
@@ -1241,7 +1381,7 @@ FC_ANNOUNCE Frame {
 }
 </pre>
 </div>
-<figcaption><a href="#figure-1" class="selfRef">Figure 1</a>:
+<figcaption><a href="#figure-3" class="selfRef">Figure 3</a>:
 <a href="#name-fc_announce-frame-format" class="selfRef">FC_ANNOUNCE Frame Format</a>
           </figcaption></figure>
 </div>
@@ -1269,9 +1409,9 @@ The Sequence number is linked to a specific Flexicast Flow ID. The same Sequence
         </h3>
 <p id="section-3.2-1">The FC_STATE frame informs the endpoint of the state of the Flexicast receiver in the Flexicast flow.
 FC_STATE frames <span class="bcp14">MAY</span> be sent by both endpoints (i.e., receiver and source).<a href="#section-3.2-1" class="pilcrow">¶</a></p>
-<p id="section-3.2-2">FC_STATE frames are formatted as shown in <a href="#fig-fc-state-frame-format" class="auto internal xref">Figure 2</a>.<a href="#section-3.2-2" class="pilcrow">¶</a></p>
+<p id="section-3.2-2">FC_STATE frames are formatted as shown in <a href="#fig-fc-state-frame-format" class="auto internal xref">Figure 4</a>.<a href="#section-3.2-2" class="pilcrow">¶</a></p>
 <span id="name-fc_state-frame-format"></span><div id="fig-fc-state-frame-format">
-<figure id="figure-2">
+<figure id="figure-4">
           <div class="alignLeft art-text artwork" id="section-3.2-3.1">
 <pre>
 FC_STATE frame {
@@ -1283,7 +1423,7 @@ FC_STATE frame {
 }
 </pre>
 </div>
-<figcaption><a href="#figure-2" class="selfRef">Figure 2</a>:
+<figcaption><a href="#figure-4" class="selfRef">Figure 4</a>:
 <a href="#name-fc_state-frame-format" class="selfRef">FC_STATE Frame Format</a>
           </figcaption></figure>
 </div>
@@ -1319,9 +1459,9 @@ The source <span class="bcp14">MAY</span> also send FC_STATE frames to a receive
         </h3>
 <p id="section-3.3-1">The FC_KEY frame informs a receiver with the decryption key of a Flexicast flow joined by the receiver.
 FC_KEY frames <span class="bcp14">MUST NOT</span> be sent by the receiver. A Flexicast QUIC source receiving an FC_KEY frame <span class="bcp14">MUST</span> clone the connection with a connection error of type FC_PROTOCOL_VIOLATION.<a href="#section-3.3-1" class="pilcrow">¶</a></p>
-<p id="section-3.3-2">FC_KEY frames are formatted as shown in <a href="#fig-fc-key-frame-format" class="auto internal xref">Figure 3</a>.<a href="#section-3.3-2" class="pilcrow">¶</a></p>
+<p id="section-3.3-2">FC_KEY frames are formatted as shown in <a href="#fig-fc-key-frame-format" class="auto internal xref">Figure 5</a>.<a href="#section-3.3-2" class="pilcrow">¶</a></p>
 <span id="name-fc_key-frame-format"></span><div id="fig-fc-key-frame-format">
-<figure id="figure-3">
+<figure id="figure-5">
           <div class="alignLeft art-text artwork" id="section-3.3-3.1">
 <pre>
 FC_KEY Frame {
@@ -1335,7 +1475,7 @@ FC_KEY Frame {
 }
 </pre>
 </div>
-<figcaption><a href="#figure-3" class="selfRef">Figure 3</a>:
+<figcaption><a href="#figure-5" class="selfRef">Figure 5</a>:
 <a href="#name-fc_key-frame-format" class="selfRef">FC_KEY Frame Format</a>
           </figcaption></figure>
 </div>
@@ -1409,13 +1549,33 @@ This mechanism can be used to provide backward and forward secrecy with dynamic 
 <a href="#section-6.2" class="section-number selfRef">6.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
         </h3>
 <dl class="references">
+<dt id="DIOT">[DIOT]</dt>
+        <dd>
+<span class="refAuthor">Diot, C.</span>, <span class="refAuthor">Levine, B.</span>, <span class="refAuthor">Lyles, B.</span>, <span class="refAuthor">Kassem, H.</span>, and <span class="refAuthor">D. Belensiefen</span>, <span class="refTitle">"Deployment issues for the IP multicast service and architecture"</span>, <span class="seriesInfo">IEEE network, vol. 14, no 1, p. 78-88. </span>, <time datetime="2000" class="refDate">2000</time>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.pardue-quic-http-mcast">[I-D.pardue-quic-http-mcast]</dt>
+        <dd>
+<span class="refAuthor">Pardue, L.</span>, <span class="refAuthor">Bradbury, R.</span>, and <span class="refAuthor">S. Hurst</span>, <span class="refTitle">"Hypertext Transfer Protocol (HTTP) over multicast QUIC"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-pardue-quic-http-mcast-11</span>, <time datetime="2022-07-04" class="refDate">4 July 2022</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-pardue-quic-http-mcast-11">https://datatracker.ietf.org/doc/html/draft-pardue-quic-http-mcast-11</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="MULTICAST-QUIC">[MULTICAST-QUIC]</dt>
+        <dd>
+<span class="refAuthor">Holland, J.</span>, <span class="refAuthor">Pardue, L.</span>, and <span class="refAuthor">M. Franke</span>, <span class="refTitle">"Multicast Extension for QUIC"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-jholland-quic-multicast-05</span>, <time datetime="2024-07-07" class="refDate">7 July 2024</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-jholland-quic-multicast-05">https://datatracker.ietf.org/doc/html/draft-jholland-quic-multicast-05</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="MULTIPATH-QUIC">[MULTIPATH-QUIC]</dt>
         <dd>
 <span class="refAuthor">Liu, Y.</span>, <span class="refAuthor">Ma, Y.</span>, <span class="refAuthor">De Coninck, Q.</span>, <span class="refAuthor">Bonaventure, O.</span>, <span class="refAuthor">Huitema, C.</span>, and <span class="refAuthor">M. Kühlewind</span>, <span class="refTitle">"Multipath Extension for QUIC"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-quic-multipath-10</span>, <time datetime="2024-07-08" class="refDate">8 July 2024</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-quic-multipath-10">https://datatracker.ietf.org/doc/html/draft-ietf-quic-multipath-10</a>&gt;</span>. </dd>
 <dd class="break"></dd>
-<dt id="RFC8678">[RFC8678]</dt>
+<dt id="RFC1112">[RFC1112]</dt>
+        <dd>
+<span class="refAuthor">Deering, S.</span>, <span class="refTitle">"Host extensions for IP multicasting"</span>, <span class="seriesInfo">STD 5</span>, <span class="seriesInfo">RFC 1112</span>, <span class="seriesInfo">DOI 10.17487/RFC1112</span>, <time datetime="1989-08" class="refDate">August 1989</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc1112">https://www.rfc-editor.org/rfc/rfc1112</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC4607">[RFC4607]</dt>
+        <dd>
+<span class="refAuthor">Holbrook, H.</span> and <span class="refAuthor">B. Cain</span>, <span class="refTitle">"Source-Specific Multicast for IP"</span>, <span class="seriesInfo">RFC 4607</span>, <span class="seriesInfo">DOI 10.17487/RFC4607</span>, <time datetime="2006-08" class="refDate">August 2006</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc4607">https://www.rfc-editor.org/rfc/rfc4607</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9293">[RFC9293]</dt>
       <dd>
-<span class="refAuthor">Baker, F.</span>, <span class="refAuthor">Bowers, C.</span>, and <span class="refAuthor">J. Linkova</span>, <span class="refTitle">"Enterprise Multihoming using Provider-Assigned IPv6 Addresses without Network Prefix Translation: Requirements and Solutions"</span>, <span class="seriesInfo">RFC 8678</span>, <span class="seriesInfo">DOI 10.17487/RFC8678</span>, <time datetime="2019-12" class="refDate">December 2019</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8678">https://www.rfc-editor.org/rfc/rfc8678</a>&gt;</span>. </dd>
+<span class="refAuthor">Eddy, W., Ed.</span>, <span class="refTitle">"Transmission Control Protocol (TCP)"</span>, <span class="seriesInfo">STD 7</span>, <span class="seriesInfo">RFC 9293</span>, <span class="seriesInfo">DOI 10.17487/RFC9293</span>, <time datetime="2022-08" class="refDate">August 2022</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9293">https://www.rfc-editor.org/rfc/rfc9293</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 </dl>
 </section>

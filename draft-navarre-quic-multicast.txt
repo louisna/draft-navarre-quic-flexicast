@@ -8,12 +8,16 @@ Intended status: Experimental                                  UCLouvain
 Expires: 18 April 2025                                   15 October 2024
 
 
-               Extending QUIC with multicast capabilities
+    Flexicast QUIC: combining unicast and multicast in a single QUIC
+                               connection
                   draft-navarre-quic-multicast-latest
 
 Abstract
 
-   TODO Abstract
+   This document proposes Flexicast QUIC, a simple extension to
+   Multipath QUIC that enables a source to send the same information to
+   a set of receivers using a combination of unicast paths and multicast
+   trees.
 
 About This Document
 
@@ -65,7 +69,7 @@ Table of Contents
 
    1.  Introduction
    2.  Conventions and Definitions
-   3.  New Frames
+   3.  The new Flexicast QUIC frames
      3.1.  FC_ANNOUNCE frame
      3.2.  FC_STATE frame
        3.2.1.  FC_STATE actions
@@ -81,7 +85,40 @@ Table of Contents
 
 1.  Introduction
 
-   TODO Introduction
+   Starting from the initially efforts of Steve Deering [RFC1112], the
+   IETF has developed a range of IP multicast solutions that enable the
+   efficient transmission of a single packet to a group of receivers.
+   In this document, we focus on Source-Specific Multicast for IP
+   [RFC4607], but the solution proposed could also be applied to other
+   forms of IP Multicast.
+
+   Although IP Multicast is not a new solution, it is not as widely used
+   by applications as transport protocols like TCP [RFC9293] or QUIC
+   [QUIC-TRANSPORT].  Current IP Multicast applications include IP TV
+   distribution in ISP networks and trading services for financial
+   institutions.  Many reasons explain the difficulty of deploying IP
+   Multicast [DIOT].  From the application's viewpoint, a key challenge
+   with IP Multicast is that even if there is a unicast path between two
+   hosts, there is no guarantee that it will be possible to create and
+   maintain a multicast tree between these two hosts to efficiently
+   exchange data using IP multicast.  For this reason, many applications
+   that send the same information to a large set of receivers like
+   streaming services or software updates, still rely on TCP or QUIC.
+   This is inefficient from the network viewpoint as the network carries
+   the same information multiple times.
+
+   The deployment of QUIC opens an interesting opportunity to reconsider
+   the utilization of IP Multicast.  As QUIC runs above UDP, it could
+   easily use IP multicast to deliver information along multicast trees.
+   Multicast extensions to QUIC have already been proposed
+   [MULTICAST-QUIC] [I-D.pardue-quic-http-mcast].
+
+   This document proposes to start from Multipath QUIC [MULTIPATH-QUIC].
+   Thanks to this recent QUIC extension, a QUIC connection can use
+   several paths simultaneously to exchange information between two
+   hosts.  This document proposes a simple extensions to Multipath QUIC
+   that enables the utilization of an IP Multicast tree as one
+   additional path.
 
 2.  Conventions and Definitions
 
@@ -91,7 +128,124 @@ Table of Contents
    BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all
    capitals, as shown here.
 
-3.  New Frames
+   ======= # Flexicast QUIC
+
+   Multipath QUIC was designed to enable the simultaneous utilization of
+   multiple paths to support a single QUIC connection.  A Multipath QUIC
+   connection starts with a handshake like a regular QUIC connection,
+   besides the utilization of the initial_max_path_id to negotiate the
+   multipath extension.  This parameter specifies the maximum path
+   identifier that an endpoint is willing to maintain at connection
+   Establishment.  Multipath QUIC requires the utilization of non-zero
+   connection identifiers and uses explicit path identifiers and one
+   packet number space per path.  Multipath QUIC assumes that the
+   additional paths are created by the client using the server address
+   of the initial paths.
+
+   Consider as an example a smartphone that uses Multipath QUIC.  This
+   smartphone has a Wi-Fi and a cellular interface.  The smartphone has
+   created the QUIC connection over the cellular interface.  After the
+   handshake, the smartphone and the server have exchanged additional
+   connection identifiers.  To create a new path over the Wi-Fi
+   interface, the smartphone sends a PATH_CHALLENGE over this path using
+   one of the connection identifiers advertised by the server.  The
+   server replies with a PATH_RESPONSE using one of the connection
+   identifiers advertised by the smartphone.  The smartphone confirms
+   the establishment of the second path using a PATH_RESPONSE.  At this
+   point that smartphone and the server have two paths to exchange data:
+   the first over the cellular interface and the second over the Wi-Fi
+   interface.  Each path uses a different sequence number space, but
+   QUIC packets are encrypted using the same connection keys over both
+   paths.  When a QUIC packet needs to be send, the packet scheduler
+   selects the relevant path.  If a QUIC frame is lost over one path, it
+   can be retransmitted over the other paths.
+
+   To illustrate the operation of Flexicast QUIC, we consider a scenario
+   with one server, S, and three receivers: R1, R2 and R3.  R1 and R2
+   are attached to a network where it is possible to create an IP
+   multicast tree from S to R1 and R2.  R3 is attached to an IP network
+   where unicast works perfectly, but IP multicast does not.  Once the
+   Flexicast QUIC connection will be established, S will be able to send
+   data along the multicast tree to reach R1 and R2 and using unicast to
+   reach R3.  This is illustrated in the ..
+
+     S --------------------+-----> R1
+     \                     |
+      \                    +-----> R2
+       \
+        +------------------------> R3
+
+     Figure 1: A Flexicast QUIC connection where source S sends a data
+         packet to R1 and R2 using a multicast tree and to R3 using
+                                  unicast
+
+   A Flexicast QUIC connection starts with a handshake like a regular
+   QUIC connection.  R1, R2 and R3 establish a connection to S using the
+   flexicast and the initial_max_path_id transport parameters.  These
+   three QUIC connections are glued as a single Flexicast QUIC
+   connection by the server.  They are secured using the TLS keys
+   derived independently during the handshake.  The first path of these
+   connections serves as a unicast path for the Flexicast QUIC
+   connection between the server and each receiver.  This path is used
+   for two very different purposes.  First, it acts as a control channel
+   and enables the source to exchange control information with each
+   receiver.  Second, it can be used to transmit or retransmit data that
+   cannot be delivered along the multicast tree.
+
+     +========================================+.    / \
+     |+=================================+     |.     |. unicast paths
+     || ============================+   |     |.     |
+     \|/                            |   |     |.    \./
+      S --------------------+-----> R1  |.    |.    / \
+                            |           |.    |.     |
+                            +---------> R2.   |.     |  multicast tree
+                                              |.     |
+                                              R3.   \ /
+
+     Figure 2: A Flexicast QUIC connection is composed of two types of
+      paths: (1) one unicast path between the source and each receiver
+       and (2) a multicast tree from the source to a set of receivers
+
+   Flexicast QUIC modifies Multipath QUIC is several ways to enable the
+   utilization of a multicast tree as one of the Multipath QUIC paths.
+   Using an IP Multicast tree as a Multipath QUIC path on a connection
+   brings several challenges.
+
+   1.  An IP multicast tree is unidirectional, in contrast with a
+       Multipath QUIC path
+
+   2.  An IP multicast tree is identified by a pair <source address,
+       group address>
+
+   3.  All the receivers attached to an IP Multicast tree receive the
+       same packet
+
+   Since an IP multicast tree is unidirectional, it is impossible to use
+   the QUIC path challenge/response mechanism to create a path along an
+   IP multicast tree.  Flexicast QUIC only uses path challenge/response
+   on unicast paths.  Furthermore, the data received over the multicast
+   path cannot be acknowledged over this path since it is
+   unidirectional.  Flexicast QUIC receivers return acknowledgments
+   using MP_ACK frames over the unicast path to provide feedback to the
+   server.
+
+   To join an IP multicast tree, the receivers must be informed of the
+   source and group addresses of this tree.  The server uses the
+   MC_ANNOUNCE frame to advertise the identifier of the multicast tree
+   that the receivers can join.
+
+   The Flexicast QUIC packets that are sent over an IP multicast tree
+   must be encrypted and authenticated.  However, these packets cannot
+   be encrypted using the TLS keys derived during the QUIC connection
+   establishment since each unicast path has its own set of TLS keys.
+   To secure the transmission of Flexicast QUIC packets along an IP
+   multicast tree, the source generates an independent set of security
+   keys and shares them using the MC_ANNOUNCE frame to all receivers
+   over the unicast path.  Since this frame is sent over the unicast
+   paths, it is authenticated and encrypted using the TLS keys
+   associated to each unicast path.
+
+3.  The new Flexicast QUIC frames
 
    All frames defined in this document MUST only be sent in 1-RTT
    packets.
@@ -121,7 +275,7 @@ Table of Contents
    MUST close the connection with a connection error of type
    FC_PROTOCOL_VIOLATION.
 
-   FC_ANNOUNCE frames are formatted as shown in Figure 1.
+   FC_ANNOUNCE frames are formatted as shown in Figure 3.
 
    FC_ANNOUNCE Frame {
        Type (i) = TBD-00,
@@ -135,7 +289,7 @@ Table of Contents
        Ack delay timer (64),
    }
 
-                     Figure 1: FC_ANNOUNCE Frame Format
+                     Figure 3: FC_ANNOUNCE Frame Format
 
    FC_ANNOUNCE frames contain the following fields:
 
@@ -187,7 +341,7 @@ Table of Contents
    receiver in the Flexicast flow.  FC_STATE frames MAY be sent by both
    endpoints (i.e., receiver and source).
 
-   FC_STATE frames are formatted as shown in Figure 2.
+   FC_STATE frames are formatted as shown in Figure 4.
 
    FC_STATE frame {
        Type (i) = TDB-01,
@@ -197,7 +351,7 @@ Table of Contents
        Action (u64),
    }
 
-                      Figure 2: FC_STATE Frame Format
+                      Figure 4: FC_STATE Frame Format
 
    FC_STATE frames contain the following fields:
 
@@ -261,7 +415,7 @@ Table of Contents
    frame MUST clone the connection with a connection error of type
    FC_PROTOCOL_VIOLATION.
 
-   FC_KEY frames are formatted as shown in Figure 3.
+   FC_KEY frames are formatted as shown in Figure 5.
 
    FC_KEY Frame {
        Type (i) = TDB-02,
@@ -273,7 +427,7 @@ Table of Contents
        Algorithm (64),
    }
 
-                       Figure 3: FC_KEY Frame Format
+                       Figure 5: FC_KEY Frame Format
 
    FC_KEY frames contain the following fields:
 
@@ -335,6 +489,25 @@ Table of Contents
 
 6.2.  Informative References
 
+   [DIOT]     Diot, C., Levine, B., Lyles, B., Kassem, H., and D.
+              Belensiefen, "Deployment issues for the IP multicast
+              service and architecture", IEEE network, vol. 14, no 1, p.
+              78-88. , 2000.
+
+   [I-D.pardue-quic-http-mcast]
+              Pardue, L., Bradbury, R., and S. Hurst, "Hypertext
+              Transfer Protocol (HTTP) over multicast QUIC", Work in
+              Progress, Internet-Draft, draft-pardue-quic-http-mcast-11,
+              4 July 2022, <https://datatracker.ietf.org/doc/html/draft-
+              pardue-quic-http-mcast-11>.
+
+   [MULTICAST-QUIC]
+              Holland, J., Pardue, L., and M. Franke, "Multicast
+              Extension for QUIC", Work in Progress, Internet-Draft,
+              draft-jholland-quic-multicast-05, 7 July 2024,
+              <https://datatracker.ietf.org/doc/html/draft-jholland-
+              quic-multicast-05>.
+
    [MULTIPATH-QUIC]
               Liu, Y., Ma, Y., De Coninck, Q., Bonaventure, O., Huitema,
               C., and M. Kühlewind, "Multipath Extension for QUIC", Work
@@ -342,11 +515,17 @@ Table of Contents
               8 July 2024, <https://datatracker.ietf.org/doc/html/draft-
               ietf-quic-multipath-10>.
 
-   [RFC8678]  Baker, F., Bowers, C., and J. Linkova, "Enterprise
-              Multihoming using Provider-Assigned IPv6 Addresses without
-              Network Prefix Translation: Requirements and Solutions",
-              RFC 8678, DOI 10.17487/RFC8678, December 2019,
-              <https://www.rfc-editor.org/rfc/rfc8678>.
+   [RFC1112]  Deering, S., "Host extensions for IP multicasting", STD 5,
+              RFC 1112, DOI 10.17487/RFC1112, August 1989,
+              <https://www.rfc-editor.org/rfc/rfc1112>.
+
+   [RFC4607]  Holbrook, H. and B. Cain, "Source-Specific Multicast for
+              IP", RFC 4607, DOI 10.17487/RFC4607, August 2006,
+              <https://www.rfc-editor.org/rfc/rfc4607>.
+
+   [RFC9293]  Eddy, W., Ed., "Transmission Control Protocol (TCP)",
+              STD 7, RFC 9293, DOI 10.17487/RFC9293, August 2022,
+              <https://www.rfc-editor.org/rfc/rfc9293>.
 
 Acknowledgments
 
