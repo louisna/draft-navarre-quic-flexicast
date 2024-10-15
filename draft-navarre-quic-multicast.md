@@ -23,8 +23,7 @@ venue:
   latest:
 
 author:
- -
-    fullname: Louis Navarre
+ -  fullname: Louis Navarre
     organization: UCLouvain
     email: louis.navarre@uclouvain.be
  -  fullname: Olivier Bonaventure
@@ -104,7 +103,6 @@ utilization of an IP Multicast tree as one additional path.
 
 {::boilerplate bcp14-tagged}
 
-=======
 # Flexicast QUIC
 
 
@@ -212,8 +210,21 @@ security keys and shares them using the MC_ANNOUNCE frame to all receivers over
 the unicast path. Since this frame is sent over the unicast paths, it is authenticated
 and encrypted using the TLS keys associated to each unicast path.
 
+# Handshake Negotiation and Transport parameter
 
-# The new Flexicast QUIC frames
+This extension defines a new transport parameter, used to negotiate the use of the flexicast extensiong during the connection handshake, as specified in {{QUIC-TRANSPORT}}.
+The new transport parameter is defined as follows:
+
+* flexicast_support (current version uses TDB-03): the presence of this transport parameter indicates support of the flexicast extension. The transport parameter contains two boolean values, respectively indicating support of IPv4 and IPv6 for multicast addresses. If an endpoint receives the flexicast_support transport parameter with both IPv4 and IPv6 supports set to false (0), it must close the connection with an error type of FC_PROTOCOL_VIOLATION.
+
+The final support of the flexicast extension is conditioned to the support of the multipath extension, as defined in {{MULTIPATH-QUIC}}.
+Since a Flexicast flow is a new multipath path, the support of multipath, with sufficient (e.g., at least 2) path ID, is required, as defined in {{Section 2 of MULTIPATH-QUIC}}.
+
+An endpoint receiving the flexicast_support transport parameter from its peer, without support for multicast MUST ignore the flexicast_support transport parameter, as if the peer does not support the flexicast extension.
+
+The extension does not change the definition of any transport parameter defined in {{Section 18.2 of QUIC-TRANSPORT}}.
+
+# New Frames
 
 All frames defined in this document MUST only be sent in 1-RTT packets.
 
