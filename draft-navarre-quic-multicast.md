@@ -33,25 +33,21 @@ author:
 normative:
   RFC2119:
   QUIC-TRANSPORT: rfc9000
+  MULTIPATH-QUIC: I-D.ietf-quic-multipath
 
 informative:
-  MULTIPATH-QUIC: I-D.ietf-quic-multipath
   MULTICAST-QUIC: I-D.jholland-quic-multicast-05
   I-D.pardue-quic-http-mcast:
   RFC1112:
   RFC4607:
   RFC9293:
-  DIOT:
-    author:
-      - ins: C. Diot
-      - ins: B. Levine
-      - ins: B. Lyles
-      - ins: H. Kassem
-      - ins: D. Belensiefen
-    title: Deployment issues for the IP multicast service and architecture
-    seriesinfo: IEEE network, vol. 14, no 1, p. 78-88.
-    date: 2000
-
+  DIOT: DOI.10.1109/65.819174
+  I-D.draft-michel-quic-fec:
+  QUIRL: DOI.10.1109/TNET.2024.3453759
+  rQUIC: DOI.10.1109/GLOBECOM38437.2019.9013401
+  I-D.draft-krose-multicast-security:
+  RFC4654:
+  RFC9002:
 
 --- abstract
 
@@ -62,7 +58,7 @@ receivers using a combination of unicast paths and multicast trees.
 
 --- middle
 
-# Introduction
+# Introduction  {#sec-intro}
 
 
 Starting from the initially efforts of Steve Deering {{RFC1112}}, the IETF
@@ -72,7 +68,8 @@ we focus on Source-Specific Multicast for IP {{RFC4607}}, but the solution
 proposed could also be applied to other forms of IP Multicast.
 
 Although IP Multicast is not a new solution, it is not as widely used by
-applications as transport protocols like TCP {{RFC9293}} or QUIC {{QUIC-TRANSPORT}} do not provide multicast transport support.
+applications as transport protocols like TCP {{RFC9293}} or QUIC {{QUIC-TRANSPORT}}
+do not provide multicast transport support.
 Current IP Multicast applications include IP TV distribution in ISP networks
 and trading services for financial institutions. Many reasons explain the difficulty
 of deploying IP Multicast {{DIOT}}. From the application's viewpoint, a
@@ -95,7 +92,7 @@ extensions to QUIC have already been proposed {{MULTICAST-QUIC}}
 {{I-D.pardue-quic-http-mcast}} and {{MULTICAST-QUIC}}.
 
 
-This document proposes to start from Multipath QUIC {{MULTIPATH-QUIC}}. Thanks
+Flexicast QUIC extends Multipath QUIC {{MULTIPATH-QUIC}}. Thanks
 to this recent QUIC extension, a QUIC connection can use several paths
 simultaneously to exchange information between two hosts. This document
 proposes a simple extension to Multipath QUIC that enables to share an
@@ -103,12 +100,17 @@ additional path between multiple receivers. The destination address of
 this path can be a multicast IP address and rely on a multicast forwarding
 mechanism (e.g., IP Multicast) to transmit the packets.
 
+This document is organized as follows. After having specified some conventions
+in {{sec-conventions}}, we provide a brief overview of Flexicast QUIC in
+{{sec-flexicast}}. We describe in more details the Flexicast QUIC handshake
+in {{sec-handshake}} and then the new QUIC frames in {{sec-frames}}.
 
-# Conventions and Definitions
+
+# Conventions and Definitions {#sec-conventions}
 
 {::boilerplate bcp14-tagged}
 
-# Flexicast QUIC
+# Flexicast QUIC {#sec-flexicast}
 
 Multipath QUIC was designed to enable the simultaneous utilization of multiple
 paths inside a single QUIC connection. A Multipath QUIC connection
@@ -156,7 +158,7 @@ to reach R3. This is illustrated in {{figfc1}}.
   S --------------------+-----> R1
   \                     |
    \                    +-----> R2
-    \		Unicast network
+    \            Unicast network
      +------------------------> R3
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -247,12 +249,12 @@ security keys and shares them using the MC_ANNOUNCE frame to all receivers over
 the unicast path. Since this frame is sent over the unicast paths, it is authenticated
 and encrypted using the TLS keys associated to each unicast path.
 
-# Handshake Negotiation and Transport parameter
+# Handshake Negotiation and Transport parameter {#sec-handshake}
 
 This extension defines a new transport parameter, used to negotiate the use of the flexicast extensiong during the connection handshake, as specified in {{QUIC-TRANSPORT}}.
 The new transport parameter is defined as follows:
 
-* flexicast_support (current version uses TDB-03): the presence of this transport parameter indicates support of the flexicast extension. The transport parameter contains two boolean values, respectively indicating support of IPv4 and IPv6 for multicast addresses. If an endpoint receives the flexicast_support transport parameter with both IPv4 and IPv6 supports set to false (0), it must close the connection with an error type of FC_PROTOCOL_VIOLATION.
+* flexicast_support (current version uses TBD-03): the presence of this transport parameter indicates support of the flexicast extension. The transport parameter contains two boolean values, respectively indicating support of IPv4 and IPv6 for multicast addresses. If an endpoint receives the flexicast_support transport parameter with both IPv4 and IPv6 supports set to false (0), it must close the connection with an error type of FC_PROTOCOL_VIOLATION.
 
 The final support of the flexicast extension is conditioned to the support of the multipath extension, as defined in {{MULTIPATH-QUIC}}.
 Since a Flexicast flow is a new multipath path, the support of multipath, with sufficient (e.g., at least 2) path ID, is required, as defined in {{Section 2 of MULTIPATH-QUIC}}.
@@ -261,7 +263,7 @@ An endpoint receiving the flexicast_support transport parameter from its peer, w
 
 The extension does not change the definition of any transport parameter defined in {{Section 18.2 of QUIC-TRANSPORT}}.
 
-# New Frames
+# New Frames {#sec-frames}
 
 All frames defined in this document MUST only be sent in 1-RTT packets.
 
@@ -273,7 +275,7 @@ If an endpoint receives a flexicast-specific frame with a Flexicast Flow ID that
 
 The new frames introduced below are for control-specific purpose only, and MUST NOT be sent on the Flexicast flow. Receipt of any of the following frames on the Flexicast flow MUST be trated as a connection error of type FC_PROTOCOL_VIOLATION.
 
-## FC_ANNOUNCE frame
+## FC_ANNOUNCE frame {#sec-fc_announce}
 
 The FC_ANNOUNCE frame informs the receiver that a Flexicast flow is available or updated.
 FC_ANNOUNCE frames MUST NOT be sent by the receiver. A Flexicast QUIC source receiving an FC_ANNOUNCE frame MUST close the connection with a connection error of type FC_PROTOCOL_VIOLATION.
@@ -323,7 +325,7 @@ The Sequence number is linked to a specific Flexicast Flow ID. The same Sequence
 
 TODO: the frame should also contain a `Status` field to indicate if the flexicast flow is retired?
 
-## FC_STATE frame
+## FC_STATE frame {#sec-fc_state}
 
 The FC_STATE frame informs the endpoint of the state of the Flexicast receiver in the Flexicast flow.
 FC_STATE frames MAY be sent by both endpoints (i.e., receiver and source).
@@ -374,7 +376,7 @@ The following action is source-specific. This action MUST NOT be sent inside an 
 
 MUST_LEAVE (0x04): The source unilaterally decides that the receiver MUST leave the Flexicast flow.
 
-## FC_KEY frame
+## FC_KEY frame {#sec-fc_key}
 
 The FC_KEY frame informs a receiver with the decryption key of a Flexicast flow joined by the receiver.
 FC_KEY frames MUST NOT be sent by the receiver. A Flexicast QUIC source receiving an FC_KEY frame MUST clone the connection with a connection error of type FC_PROTOCOL_VIOLATION.
@@ -417,15 +419,64 @@ This mechanism can be used to provide backward and forward secrecy with dynamic 
 
 TODO: define the bit-encoded algorithms.
 
+# Discussion {#sec-further}
+
+
+This document has defined a simple extension to Multipath QUIC that enables a
+QUIC connection to simulatenously use unicast paths and multicast trees
+to deliver the same data to a set of receivers. The proposed protocol can be extended
+in different ways and improvements will be proposed in separate documents. We
+briefly describe some of these possible extensions.
+
+This version of Flexicast QUIC uses the existing QUIC mechanisms to retransmit
+lost frames. It is well known that Forward Erasure Correction can improve the
+performance of multicast transmission when losses occur. Several authors have
+proposed techniques to add Forward Erasure Correction to QUIC {{QUIRL}}, {{rQUIC}},
+{{I-D.draft-michel-quic-fec}}. FEC can be sent a priori to enable receivers
+to recover from different packet losses without having to wait for retransmissions or
+a posteriori by sending a repair symbol that enables different receivers to recover
+different lost frames.
+
+This version of Flexicast QUIC uses a key shared between the source and all receivers
+to authenticate and encrypt the data sent by the source over the multicast tree.
+A malicious receiver who has received the shared keys could inject fake data over
+the multicast tree provided that it can spoof the IP address of the source. Techniques
+have been proposed to authenticate the frames sent by the source {{I-D.draft-krose-multicast-security}}.
+Subsequent documents will detail how Flexicast QUIC can be extended to support such
+techniques.
+
+Multipath QUIC assumes that the congestion control mechanism operates per path. For
+Flexicast QUIC, a different congestion control mechanism will be required for the
+unicast paths and the multicast tree. For the former, the QUIC congestion control
+mechanisms {{RFC9002}} are applicable. For the latter, multicast specific congestion
+control mechanisms such as {{RFC4654}} will be required. The current prototype
+uses a variant of the CUBIC congestion control.
+
+
 
 # Security Considerations
 
-TODO Security
+To be provided in the next version of this document.
 
 
-# IANA Considerations
+# IANA Considerations {#sec-iana}
 
-This document has no IANA actions.
+IANA is requested to assign three new QUIC frame types from the
+"QUIC Frame Types" registry available at
+https://www.iana.org/assignments/quic/quic.xhtml#quic-frame-types
+
+ - TBD-00 for the FC_ANNOUNCE frame defined in {{sec-fc_announce}}
+ - TBD-01 for the FC_STATE frame defined in {{sec-fc_state}}
+ - TBD-02 for the FC_KEY frame defined in {{sec-fc_key}}
+
+
+
+IANA is requested to assign a new QUIC transport parameter
+from the "QUIC Transport Parameters" registry available at
+https://www.iana.org/assignments/quic/quic.xhtml#quic-transport
+
+
+ - TBD-03 for the flexicast_support transport parameter defined in {{sec-handshake}}
 
 
 --- back
