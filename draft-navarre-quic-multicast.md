@@ -72,14 +72,17 @@ we focus on Source-Specific Multicast for IP {{RFC4607}}, but the solution
 proposed could also be applied to other forms of IP Multicast.
 
 Although IP Multicast is not a new solution, it is not as widely used by
-applications as transport protocols like TCP {{RFC9293}} or QUIC {{QUIC-TRANSPORT}}.
+applications as transport protocols like TCP {{RFC9293}} or QUIC {{QUIC-TRANSPORT}} do not provide multicast transport support.
 Current IP Multicast applications include IP TV distribution in ISP networks
 and trading services for financial institutions. Many reasons explain the difficulty
 of deploying IP Multicast {{DIOT}}. From the application's viewpoint, a
 key challenge with IP Multicast is that even if there is a unicast path
 between two hosts, there is no guarantee that it will be possible to create and
 maintain a multicast tree between these two hosts to efficiently exchange
-data using IP multicast. For this reason, many applications that send
+data using IP multicast.
+Applications must implement multiple protocols in case a recipient does not support
+multicast?
+For this reason, many applications that send
 the same information to a large set of receivers like streaming services
 or software updates, still rely on TCP or QUIC. This is inefficient from
 the network viewpoint as the network carries the same information multiple
@@ -89,14 +92,16 @@ The deployment of QUIC opens an interesting opportunity to reconsider the
 utilization of IP Multicast. As QUIC runs above UDP, it could easily use
 IP multicast to deliver information along multicast trees. Multicast
 extensions to QUIC have already been proposed {{MULTICAST-QUIC}}
-{{I-D.pardue-quic-http-mcast}}.
+{{I-D.pardue-quic-http-mcast}} and {{MULTICAST-QUIC}}.
 
 
 This document proposes to start from Multipath QUIC {{MULTIPATH-QUIC}}. Thanks
 to this recent QUIC extension, a QUIC connection can use several paths
 simultaneously to exchange information between two hosts. This document
-proposes a simple extensions to Multipath QUIC that enables the
-utilization of an IP Multicast tree as one additional path.
+proposes a simple extension to Multipath QUIC that enables to share an
+additional path between multiple receivers. The destination address of
+this path can be a multicast IP address and rely on a multicast forwarding
+mechanism (e.g., IP Multicast) to transmit the packets.
 
 
 # Conventions and Definitions
@@ -105,13 +110,12 @@ utilization of an IP Multicast tree as one additional path.
 
 # Flexicast QUIC
 
-
 Multipath QUIC was designed to enable the simultaneous utilization of multiple
-paths to support a single QUIC connection. A Multipath QUIC connection
+paths inside a single QUIC connection. A Multipath QUIC connection
 starts with a handshake like a regular QUIC connection, besides the utilization
 of the initial_max_path_id to negotiate the multipath extension. This parameter
 specifies the maximum path identifier that an endpoint is willing to maintain
-at connection Establishment. Multipath QUIC requires the utilization of non-zero
+at connection establishment. Multipath QUIC requires the utilization of non-zero
 connection identifiers and uses explicit path identifiers and one packet number
 space per path. Multipath QUIC assumes that the additional paths are created
 by the client using the server address of the initial paths.
@@ -132,21 +136,27 @@ When a QUIC packet needs to be send, the packet scheduler selects the relevant p
 If a QUIC frame is lost over one path, it can be retransmitted over the other
 paths.
 
+Flexicast QUIC extends Multipath QUIC by requiring that each path uses different
+encryption and decryption keys. As such, multiple clients can share the same additional
+path which is encrypted with a different key than their respective unicast path.
+The IP destination address of this new, shared path MAY be a multicast address,
+so that all receivers with multicast support receive the same packet.
+
 To illustrate the operation of Flexicast QUIC, we consider a scenario with
-one server, S, and three receivers: R1, R2 and R3. R1 and R2 are attached to
+one source, S, and three receivers: R1, R2 and R3. R1 and R2 are attached to
 a network where it is possible to create an IP multicast tree from S to R1 and R2.
 R3 is attached to an IP network where unicast works perfectly, but IP multicast
 does not. Once the Flexicast QUIC connection will be established, S will be
 able to send data along the multicast tree to reach R1 and R2 and using unicast
-to reach R3. This is illustrated in the ..
+to reach R3. This is illustrated in {{figfc1}}.
 
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+           IP Multicast tree
   S --------------------+-----> R1
   \                     |
    \                    +-----> R2
-    \			
+    \		Unicast network
      +------------------------> R3
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -154,44 +164,71 @@ to reach R3. This is illustrated in the ..
 
 
 A Flexicast QUIC connection starts with a handshake like a regular QUIC
-connection. R1, R2 and R3 establish a connection to S using the flexicast
-and the initial_max_path_id transport parameters. These three QUIC connections
-are glued as a single Flexicast QUIC connection by the server. They are secured
-using the TLS keys derived independently during the handshake. The first path
-of these connections serves as a unicast path for the Flexicast QUIC
-connection between the server and each receiver. This path is used for two very
-different purposes. First, it acts as a control channel and enables the source to
+connection. R1, R2 and R3 establish a connection to S using the flexicast_support
+and the initial_max_path_id transport parameters.
+The initial path between each receiver and the source are individually secured using
+the keys derived at connection establishement. They remain open during the whole
+communication and constitute a unicast bidirectional channel between the source and
+each receiver. This path is used for two very different purposes.
+First, it acts as a control channel and enables the source to
 exchange control information with each receiver. Second, it can be used to transmit
 or retransmit data that cannot be delivered along the multicast tree.
 
+In addition, Flexicast QUIC receivers MAY create additional paths with shared keys to receive
+content through multicast delivery.
+This is illustrated in {{fig-flexicast-2}}.
+Receivers R1 and R2 open a new path and use the same decryption key to read incoming packets.
+The new path uses an IP multicast destination address and is unidirectional from the source
+to the receivers. The remaining of this document refers to this shared, unidirectional path as the
+__flexicast flow__.
+The Flexicast QUIC source uses the flexicast flow to efficiently sends data to multiple receivers
+simultaneously (R1 and R2 in {{fig-flexicast-2}}).
+R1 and R2 use their unicast path, created at connection establishment, to send acknowledgment to
+the source and to receive retransmitted frames.
+
+In this example, R3 lies in a non-multicast-capable network, and cannot receive content through the
+flexicast flow. Instead, it relies on its unicast path, created at connection establishment to receive
+data from the source.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  +========================================+.    / \
-  |+=================================+     |.     |. unicast paths
-  || ============================+   |     |.     |
-  \|/                            |   |     |.    \./
-   S --------------------+-----> R1  |.    |.    / \
-                         |           |.    |.     |
-                         +---------> R2.   |.     |  multicast tree
-      			                   |.     |
-      					   R3.   \ /
++----------------------------------------+       =======> flexicast flow
+|   +----------------------------+       |
+|   |                            |       |
+|   |     .......................|.......|...
+|   |     .  Multicast-network   |       |  .     <------> unicast path
+|   |     .                      |       |  .
+|   v     .  239.239.23.35:4433  v       |  .
++-> S ==============+==========> R1      |  .
+    ^     .         \\                   v  .
+    |     .          +=================> R2 .
+    |     ...................................
+    |
+    |     ...................................
+    |     . Unicast-only network            .
+    +----------------------------> R3       .
+          .                                 .
+          ...................................
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-{: #figfcq2 title="A Flexicast QUIC connection is composed of two types of paths: (1) one unicast path between the source and each receiver and (2) a multicast tree from the source to a set of receivers"}
+{: #fig-flexicast-2 title="A Flexicast QUIC connection is composed of two types of paths: (1) one bidirectional, unique, unicast path between the source and each receiver and (2) a flexicast flow from the source to a set of receivers relyinf on a multicast distribution tree"}
 
+At any point in time, if the network condition of a receiver listening to the Flexicast flow degrades, e.g., because the underlying multicast tree fails or because the receiver moves into a non-multicast network, it MAY leave the Flexicast flow and continue receiving content through its unicast path, similarly to R3.
+The seamless transition between the flexicast flow and unicast path is possible because these are Multipath QUIC paths.
+
+## Extensions to Multipath QUIC.
 
 Flexicast QUIC modifies Multipath QUIC is several ways to enable the
-utilization of a multicast tree as one of the Multipath QUIC paths. Using an IP
-Multicast tree as a Multipath QUIC path on a connection brings several challenges.
+utilization of a shared unidirectional flow as one of the Multipath QUIC paths.
+The shared unidirectional flow can be transported on top of an IP multicast distribution tree,
+which brings several challenges:
 
-1. An IP multicast tree is unidirectional, in contrast with a Multipath QUIC path
+1. An IP multicast tree is unidirectional, in contrast with a Multipath QUIC path.
 
-2. An IP multicast tree is identified by a pair <source address, group address>
+2. An IP multicast tree is identified by a pair <source address, group address>.
 
-3. All the receivers attached to an IP Multicast tree receive the same packet
-
+3. All the receivers attached to an IP Multicast tree receive the same packet.
 
 Since an IP multicast tree is unidirectional, it is impossible to use the QUIC
-path challenge/response mechanism to create a path along an IP multicast tree.
+path challenge/response mechanism to create the flexicast flow along an IP multicast tree.
 Flexicast QUIC only uses path challenge/response on unicast paths. Furthermore,
 the data received over the multicast path cannot be acknowledged over this path
 since it is unidirectional. Flexicast QUIC receivers return acknowledgments
