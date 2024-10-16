@@ -341,7 +341,7 @@ its willingness to receive packets from the flexicast flow that will be sent by 
 in the FC_ANNOUNCE frame. The receiver MAY also wait to receive the FC_KEY frame of the corresponding flexicast flow to avoid
 receiving packets that it will not be able to process before receiving the required TLS keys.
 
-# Flexicast flow memberhsip management
+# Flexicast flow memberhsip management {#sec-leave}
 
 A Flexicast QUIC source exactly knows the set of receivers listening to a specific flexicast flow.
 Receivers MAY decide, at any point in time during the communication, to leave the flexicast flow.
@@ -494,17 +494,14 @@ The source MAY also send FC_STATE frames to a receiver to unilaterally change th
 
 This section lists the defined Actions encoded in an FC_STATE frame. An endpoint receiving an unknown value MUST treat it as a connection error of type FC_PROTOCOL_VIOLATION.
 
-The three following actions are receiver-specific. These actions MUST NOT be sent inside an FC_STATE frame sent by the source. A receiver receiving an FC_STATE frame with any of the following actions MUST treat it as a connection error of type FC_PROTOCOL_VIOLATION.
-
 JOIN (0x01): The receiver joins the Flexicast flow.
 
 LEAVE (0x02): The receiver leaves the Flexicast flow.
 
 READY (0x03): The receiver is ready to receive content on the Flexicast flow.
 
-The following action is source-specific. This action MUST NOT be sent inside an FC_STATE frame sent by the receiver. A source receiving an FC_STATE frame with the following action MUST treat it as a connection error of type FC_PROTOCOL_VIOLATION.
-
-MUST_LEAVE (0x04): The source unilaterally decides that the receiver MUST leave the Flexicast flow.
+The actions JOIN and READY are receiver-specific. These actions MUST NOT be sent inside an FC_STATE frame sent by the source. A receiver receiving an FC_STATE frame with any of the following actions MUST treat it as a connection error of type FC_PROTOCOL_VIOLATION.
+The action LEAVE MAY be sent by both the receiver and the source, as detailed in {{sec-leave}}.
 
 ## FC_KEY frame {#fc-key-frame}
 
