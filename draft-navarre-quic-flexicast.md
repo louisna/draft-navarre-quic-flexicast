@@ -314,7 +314,7 @@ The source MAY advertise updated information about a specific flexicast flow by 
 Upon reception of a new FC_ANNOUNCE frame updating information of an existing flexicast flow with an increased sequence number compared to the last received FC_ANNOUNCE frame, a receiver MUST update flexicast flow information.
 Upon reception of a new FC_ANNOUNCE frame updating information of an existing flexicast flow with a smaller sequence number compared to the last received FC_ANNOUNCE frame, a receiver MUST silently discard the new FC_ANNOUNCE frame.
 
-## Joining a Flexicast Flow
+## Joining a Flexicast Flow {#sec-join-fc-flow}
 
 After receiving an FC_ANNOUNCE frame dvertising a flexicast flow, a receiver MAY decide to join it.
 Flexicast flow management is handled with the FC_STATE frame (see {{fc-state-frame}}).
@@ -341,9 +341,36 @@ its willingness to receive packets from the flexicast flow that will be sent by 
 in the FC_ANNOUNCE frame. The receiver MAY also wait to receive the FC_KEY frame of the corresponding flexicast flow to avoid
 receiving packets that it will not be able to process before receiving the required TLS keys.
 
-# Group Management
+# Flexicast flow memberhsip management
 
-TODO
+A Flexicast QUIC source exactly knows the set of receivers listening to a specific flexicast flow.
+Receivers MAY decide, at any point in time during the communication, to leave the flexicast flow.
+However, receivers SHOULD only leave a flexicast flow only if network conditions are not met to
+ensure a good quality of experience for the applications.
+The exact metrics defining "good enough network conditions" is out of scope of this document,
+and MUST be provided by the application.
+
+## Receiver-side management
+
+Receivers leave a flexicast flow membership by sending an FC_STATE frame with the LEAVE action.
+Upon reception of this frame, the Flexicast QUIC source MUST NOT consider anymore the receiver
+as a member of the flexicast flow, and it MUST continue transmitting data through the unicast path
+with the receiver.
+The receiver SHOULD drop any path state for the flexicast flow regarding.
+The finite-state machine on the receiver-side MUST be reset to the same state as when it received
+the FC_ANNOUNCE for the first time.
+
+A receiver that previously left a flexicast flow MAY attempt to join again the same flow by
+restarting the phases from {{sec-join-fc-flow}}. Receiving a new FC_KEY is mandatory if
+the Flexicast QUIC source uses group-key management systems to ensure backward and forward
+secrecy.
+
+Applications SHOULD provide a mechanism to avoid malicious receivers to periodically join and leave
+the same flexicast flow to saturate the Flexicast QUIC source.
+
+## Source-side management
+
+At any point in time, the Flexicast QUIC source may decide to unilaterally remove a receiver from a flexicast flow.
 
 # Reliability
 
