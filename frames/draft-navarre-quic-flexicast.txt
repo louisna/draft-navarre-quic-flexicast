@@ -1,0 +1,857 @@
+
+
+
+
+QUIC                                                          L. Navarre
+Internet-Draft                                            O. Bonaventure
+Intended status: Experimental                                  UCLouvain
+Expires: 19 April 2025                                   16 October 2024
+
+
+    Flexicast QUIC: combining unicast and multicast in a single QUIC
+                               connection
+                  draft-navarre-quic-flexicast-latest
+
+Abstract
+
+   This document proposes Flexicast QUIC, a simple extension to
+   Multipath QUIC that enables a source to send the same information to
+   a set of receivers using a combination of unicast paths and multicast
+   distribution trees.
+
+About This Document
+
+   This note is to be removed before publishing as an RFC.
+
+   Status information for this document may be found at
+   https://datatracker.ietf.org/doc/draft-navarre-quic-flexicast/.
+
+   Discussion of this document takes place on the QUIC Working Group
+   mailing list (mailto:quic@ietf.org), which is archived at
+   https://mailarchive.ietf.org/arch/browse/quic/.  Subscribe at
+   https://www.ietf.org/mailman/listinfo/quic/.
+
+   Source for this draft and an issue tracker can be found at
+   https://github.com/louisna/draft-navarre-quic-flexicast.
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at https://datatracker.ietf.org/drafts/current/.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on 19 April 2025.
+
+Copyright Notice
+
+   Copyright (c) 2024 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents (https://trustee.ietf.org/
+   license-info) in effect on the date of publication of this document.
+   Please review these documents carefully, as they describe your rights
+   and restrictions with respect to this document.  Code Components
+   extracted from this document must include Revised BSD License text as
+   described in Section 4.e of the Trust Legal Provisions and are
+   provided without warranty as described in the Revised BSD License.
+
+Table of Contents
+
+   1.  Introduction
+   2.  Conventions and Definitions
+   3.  Flexicast QUIC
+     3.1.  Extensions to Multipath QUIC.
+   4.  Handshake Negotiation and Transport parameter
+   5.  Initialisation of a Flexicast Flow
+     5.1.  Flexicast Flow Announcement
+     5.2.  Joining a Flexicast Flow
+     5.3.  Underlying multicast network
+   6.  Group Management
+   7.  Reliability
+   8.  FLow and Congestion Control
+   9.  New Frames
+     9.1.  FC_ANNOUNCE frame
+     9.2.  FC_STATE frame
+       9.2.1.  FC_STATE actions
+     9.3.  FC_KEY frame
+       9.3.1.  FC_KEY algorithms
+   10. Discussion
+   11. Security Considerations
+   12. IANA Considerations
+   13. References
+     13.1.  Normative References
+     13.2.  Informative References
+   Acknowledgments
+   Authors' Addresses
+
+1.  Introduction
+
+   Starting from the initially efforts of Steve Deering [RFC1112], the
+   IETF has developed a range of IP multicast solutions that enable the
+   efficient transmission of a single packet to a group of receivers.
+   In this document, we focus on Source-Specific Multicast for IP
+   [RFC4607], but the solution proposed could also be applied to other
+   forms of IP Multicast.
+
+   Although IP Multicast is not a new solution, it is not as widely used
+   by applications as transport protocols like TCP [RFC9293] or QUIC
+   [QUIC-TRANSPORT] do not provide multicast transport support.  Current
+   IP Multicast applications include IP TV distribution in ISP networks
+   and trading services for financial institutions.  Many reasons
+   explain the difficulty of deploying IP Multicast [DIOT].  From the
+   application's viewpoint, a key challenge with IP Multicast is that
+   even if there is a unicast path between two hosts, there is no
+   guarantee that it will be possible to create and maintain a multicast
+   tree between these two hosts to efficiently exchange data using IP
+   multicast.  Applications must implement multiple protocols in case a
+   recipient does not support multicast?  For this reason, many
+   applications that send the same information to a large set of
+   receivers like streaming services or software updates, still rely on
+   TCP or QUIC.  This is inefficient from the network viewpoint as the
+   network carries the same information multiple times.
+
+   The deployment of QUIC opens an interesting opportunity to reconsider
+   the utilization of IP Multicast.  As QUIC runs above UDP, it could
+   easily use IP multicast to deliver information along multicast trees.
+   Multicast extensions to QUIC have already been proposed
+   [MULTICAST-QUIC] [I-D.pardue-quic-http-mcast] and [MULTICAST-QUIC].
+
+   Flexicast QUIC extends Multipath QUIC [MULTIPATH-QUIC].  Thanks to
+   this recent QUIC extension, a QUIC connection can use several paths
+   simultaneously to exchange information between two hosts.  This
+   document proposes a simple extension to Multipath QUIC that enables
+   to share an additional path between multiple receivers.  The
+   destination address of this path can be a multicast IP address and
+   rely on a multicast forwarding mechanism (e.g., IP Multicast) to
+   transmit the packets.  This document defines the core design of
+   Flexicast QUIC starting from Multipath QUIC.  Side documents will
+   further expand this design to add new features.
+
+   This document is organized as follows.  After having specified some
+   conventions in Section 2, we provide a brief overview of Flexicast
+   QUIC in Section 3.  We describe in more details the Flexicast QUIC
+   handshake in Section 4 and then the new QUIC frames in Section 9.
+
+2.  Conventions and Definitions
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+   "OPTIONAL" in this document are to be interpreted as described in
+   BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all
+   capitals, as shown here.
+
+3.  Flexicast QUIC
+
+   Multipath QUIC was designed to enable the simultaneous utilization of
+   multiple paths inside a single QUIC connection.  A Multipath QUIC
+   connection starts with a handshake like a regular QUIC connection,
+   besides the utilization of the initial_max_path_id to negotiate the
+   multipath extension.  This parameter specifies the maximum path
+   identifier that an endpoint is willing to maintain at connection
+   establishment.  Multipath QUIC requires the utilization of non-zero
+   connection identifiers and uses explicit path identifiers and one
+   packet number space per path.  Multipath QUIC assumes that the
+   additional paths are created by the client using the server address
+   of the initial paths.
+
+   Consider as an example a smartphone that uses Multipath QUIC.  This
+   smartphone has a Wi-Fi and a cellular interface.  The smartphone has
+   created the QUIC connection over the cellular interface.  After the
+   handshake, the smartphone and the server have exchanged additional
+   connection identifiers.  To create a new path over the Wi-Fi
+   interface, the smartphone sends a PATH_CHALLENGE over this path using
+   one of the connection identifiers advertised by the server.  The
+   server replies with a PATH_RESPONSE using one of the connection
+   identifiers advertised by the smartphone.  The smartphone confirms
+   the establishment of the second path using a PATH_RESPONSE.  At this
+   point that smartphone and the server have two paths to exchange data:
+   the first over the cellular interface and the second over the Wi-Fi
+   interface.  Each path uses a different sequence number space, but
+   QUIC packets are encrypted using the same connection keys over both
+   paths.  When a QUIC packet needs to be send, the packet scheduler
+   selects the relevant path.  If a QUIC frame is lost over one path, it
+   can be retransmitted over the other paths.
+
+   Flexicast QUIC extends Multipath QUIC by requiring that each path
+   uses different encryption and decryption keys.  As such, multiple
+   clients can share the same additional path which is encrypted with a
+   different key than their respective unicast path.  The IP destination
+   address of this new, shared path MAY be a multicast address, so that
+   all receivers with multicast support receive the same packet.
+
+   To illustrate the operation of Flexicast QUIC, we consider a scenario
+   with one source, S, and three receivers: R1, R2 and R3.  R1 and R2
+   are attached to a network where it is possible to create an IP
+   multicast tree from S to R1 and R2.  R3 is attached to an IP network
+   where unicast works perfectly, but IP multicast does not.  Once the
+   Flexicast QUIC connection will be established, S will be able to send
+   data along the multicast tree to reach R1 and R2 and using unicast to
+   reach R3.  This is illustrated in Figure 1.
+
+              IP Multicast tree
+     S --------------------+-----> R1
+     \                     |
+      \                    +-----> R2
+       \            Unicast network
+        +------------------------> R3
+
+     Figure 1: A Flexicast QUIC connection where source S sends a data
+         packet to R1 and R2 using a multicast tree and to R3 using
+                                  unicast
+
+   A Flexicast QUIC connection starts with a handshake like a regular
+   QUIC connection.  R1, R2 and R3 establish a connection to S using the
+   flexicast_support and the initial_max_path_id transport parameters.
+   The initial path between each receiver and the source are
+   individually secured using the keys derived at connection
+   establishement.  They remain open during the whole communication and
+   constitute a unicast bidirectional channel between the source and
+   each receiver.  This path is used for two very different purposes.
+   First, it acts as a control channel and enables the source to
+   exchange control information with each receiver.  Second, it can be
+   used to transmit or retransmit data that cannot be delivered along
+   the multicast tree.
+
+   In addition, Flexicast QUIC receivers MAY create additional paths
+   with shared keys to receive content through multicast delivery.  This
+   is illustrated in Figure 2.  Receivers R1 and R2 open a new path and
+   use the same decryption key to read incoming packets.  The new path
+   uses an IP multicast destination address and is unidirectional from
+   the source to the receivers.  The remaining of this document refers
+   to this shared, unidirectional path as the *flexicast flow*. The
+   Flexicast QUIC source uses the flexicast flow to efficiently sends
+   data to multiple receivers simultaneously (R1 and R2 in Figure 2).
+   R1 and R2 use their unicast path, created at connection
+   establishment, to send acknowledgment to the source and to receive
+   retransmitted frames.
+
+   In this example, R3 lies in a non-multicast-capable network, and
+   cannot receive content through the flexicast flow.  Instead, it
+   relies on its unicast path, created at connection establishment to
+   receive data from the source.
+
+   Flexicast flow-specific information, such as the IP multicast
+   destination address, are advertised by the source on the unicast path
+   using the new frames defined in this document (see Section 9).
+
++----------------------------------------+       =======> flexicast flow
+|   +----------------------------+       |
+|   |                            |       |
+|   |     .......................|.......|...
+|   |     .  Multicast-network   |       |  .     <------> unicast path
+|   |     .                      |       |  .
+|   v     .  239.239.23.35:4433  v       |  .
++-> S ==============+==========> R1      |  .
+    ^     .         \\                   v  .
+    |     .          +=================> R2 .
+    |     ...................................
+    |
+    |     ...................................
+    |     . Unicast-only network            .
+    +----------------------------> R3       .
+          .                                 .
+          ...................................
+
+  Figure 2: A Flexicast QUIC connection is composed of two types of
+    paths: (1) one bidirectional, unique, unicast path between the
+  source and each receiver and (2) a flexicast flow from the source
+    to a set of receivers relyinf on a multicast distribution tree
+
+   At any point in time, if the network condition of a receiver
+   listening to the Flexicast flow degrades, e.g., because the
+   underlying multicast tree fails or because the receiver moves into a
+   non-multicast network, it MAY leave the Flexicast flow and continue
+   receiving content through its unicast path, similarly to R3.  The
+   seamless transition between the flexicast flow and unicast path is
+   possible because these are Multipath QUIC paths.
+
+3.1.  Extensions to Multipath QUIC.
+
+   Flexicast QUIC modifies Multipath QUIC is several ways to enable the
+   utilization of a shared unidirectional path, the flexicast flow, as
+   one of the Multipath QUIC paths.  The flexicast flow can be
+   transported on top of an IP multicast distribution tree to reach
+   several receivers simultaneously, which brings several challenges:
+
+   1.  An IP multicast tree is unidirectional, in contrast with a
+       Multipath QUIC path.
+
+   2.  An IP multicast tree is identified by a pair <source address,
+       group address>.
+
+   3.  All the receivers attached to an IP Multicast tree receive the
+       same packet.
+
+   Since an IP multicast tree is unidirectional, it is impossible to use
+   the QUIC path challenge/response mechanism to create the flexicast
+   flow along an IP multicast tree.  Flexicast QUIC only uses path
+   challenge/response on unicast paths.  Flexicast QUIC replaces the
+   explicit path challenge/response from Multipath QUIC to create the
+   flexicast flow by an implicit path creation.  Since the destination
+   address of this new "path" is a multicast IP address, it is
+   impossible for receivers to test its reachability from the source.
+   An underlying mechanism (e.g., using IGMP) SHOULD provide feedback to
+   the receiver on the reachability of the flexicast flow at the IP
+   multicast address provided by the source.
+
+   Furthermore, the data received over the flexicast flow cannot be
+   acknowledged over this path since it is unidirectional.  Because
+   Flexicast QUIC uses Multipath QUIC, ACK frames are replaced by MP_ACK
+   frames.  Flexicast QUIC receivers MUST send acknowledgments to the
+   source using MP_ACK frames sent on their unicast path.
+
+   To join the flexicast flow, the receivers must be informed of the
+   source and group addresses of this tree.  The server uses the
+   FC_ANNOUNCE frame to advertise the identifier of the multicast tree
+   that the receivers can join.
+
+   The Flexicast QUIC packets that are sent over the flexicast flow must
+   be encrypted and authenticated.  However, these packets cannot be
+   encrypted using the TLS keys derived during the QUIC connection
+   establishment since each unicast path has its own set of TLS keys.
+   To secure the transmission of Flexicast QUIC packets along the
+   flexicast flow, the source generates an independent set of security
+   keys and shares them using the FC_KEY frame (see Section 9.3) to all
+   receivers over the unicast path.  Since this frame is sent over the
+   unicast paths, it is authenticated and encrypted using the TLS keys
+   associated to each unicast path.
+
+4.  Handshake Negotiation and Transport parameter
+
+   This extension defines a new transport parameter, used to negotiate
+   the use of the flexicast extensiong during the connection handshake,
+   as specified in [QUIC-TRANSPORT].  The new transport parameter is
+   defined as follows:
+
+   *  flexicast_support (current version uses TBD-03): the presence of
+      this transport parameter indicates support of the flexicast
+      extension.  The transport parameter contains two boolean values,
+      respectively indicating support of IPv4 and IPv6 for multicast
+      addresses.  If an endpoint receives the flexicast_support
+      transport parameter with both IPv4 and IPv6 supports set to false
+      (0), it must close the connection with an error type of
+      FC_PROTOCOL_VIOLATION.
+
+   The final support of the flexicast extension is conditioned to the
+   support of the multipath extension, as defined in [MULTIPATH-QUIC].
+   Since a Flexicast flow is a new multipath path, the support of
+   multipath, with sufficient (e.g., at least 2) path ID, is required,
+   as defined in Section 2 of [MULTIPATH-QUIC].
+
+   An endpoint receiving the flexicast_support transport parameter from
+   its peer, without support for multicast MUST ignore the
+   flexicast_support transport parameter, as if the peer does not
+   support the flexicast extension.
+
+   The extension does not change the definition of any transport
+   parameter defined in Section 18.2 of [QUIC-TRANSPORT].
+
+5.  Initialisation of a Flexicast Flow
+
+   This section details how a Flexicast QUIC source advertises flexicast
+   flows and how receivers join them.
+
+   Figure 3 illustrates how a Flexicast QUIC source and receiver
+   exchange frames on the unicast path to advertise and join a flexicast
+   flow.
+
+   Source                                        Receiver
+
+   QUIC handshake      <------------>      QUIC handshake
+
+   FC_ANNOUNCE         ------------->
+                       <-------------      FC_STATE(JOIN)
+   FC_KEY              ------------->
+                       <-------------    FC_STATE(LISTEN)
+
+               Figure 3: Flexicast flow announcement and join
+
+5.1.  Flexicast Flow Announcement
+
+   A Flexicast QUIC source announces flexicast flows through the
+   FC_ANNOUNCE frame (see Section 9.1).  Flexicast QUIC replaces the
+   concept of Connection ID with the Flexicast Flow ID.  Concretelly,
+   these two terms refer to the same concept.  Since the flexicast flow
+   is unidirectional, refering to this value as a "connection" ID would
+   be quite ambiguous.
+
+   Through the FC_ANNOUNCE frame, the source advertises the Flexicast
+   FLow ID of the flexicast flow to listen to.  As the Flexicast Flow ID
+   will serve as a "destination Connection ID" for the flexicast flow,
+   receivers willing to join the flexicast flow MUST add this Flexicast
+   Flow ID as a new "source Connection ID". _TODO: how to handle the
+   case were the receiver already has this Flexicast Flow ID as a source
+   Connection ID?_
+
+   The FC_ANNOUNCE frame also contains routing information, i.e., the IP
+   multicast destination address carrying flexicast flow packets, and
+   the UDP destination port that the receivers MUST listen to.
+
+   The source MAY advertise multiple distinct flexicast flows to the
+   same receivers, i.e., flexicast flows with distinct Flexicast Flow
+   ID.  The source MAY advertise updated information about a specific
+   flexicast flow by sending new FC_ANNOUNCE frames with increased
+   sequence numbers.  Upon reception of a new FC_ANNOUNCE frame updating
+   information of an existing flexicast flow with an increased sequence
+   number compared to the last received FC_ANNOUNCE frame, a receiver
+   MUST update flexicast flow information.  Upon reception of a new
+   FC_ANNOUNCE frame updating information of an existing flexicast flow
+   with a smaller sequence number compared to the last received
+   FC_ANNOUNCE frame, a receiver MUST silently discard the new
+   FC_ANNOUNCE frame.
+
+5.2.  Joining a Flexicast Flow
+
+   After receiving an FC_ANNOUNCE frame dvertising a flexicast flow, a
+   receiver MAY decide to join it.  Flexicast flow management is handled
+   with the FC_STATE frame (see Section 9.2).  The receiver sends an
+   FC_STATE frame with the Flexicast Flow ID of the flexicast flow it
+   wants to join and the JOIN action. _TODO: add a finite state machine
+   of the receiver and source status._
+
+   At this point, the Flexicast QUIC source MAY still decide to
+   unauthorize the receiver to listen to the flexicast flow.  However, a
+   Flexicast QUIC source having advertised a flexicast flow through an
+   FC_ANNOUNCE SHOULD accept a receiver to join it after receiving the
+   corresponding FC_STATE frame with the JOIN action.
+
+   In the positive case, the source sends an FC_KEY frame, containing
+   the TLS keys necessary for the receiver to decrypt packets received
+   on the flexicast flow.  The frame also contains the first packet
+   number that the receiver SHOULD receive with this key.
+
+   Once the receiver received the FC_KEY frame and its underlying
+   multicast network is ready to transmit packets with the IP multicast
+   address from the FC_ANNOUNCE frame as destination address, it sends
+   an FC_STATE frame to the source with the LISTEN action.
+
+   The Flexicast QUIC source SHOULD NOT consider the receiver as a full
+   member of the flexicast flow until it receives an FC_STATE with the
+   LISTEN action from the receiver.
+
+5.3.  Underlying multicast network
+
+   After sending the FC_STATE frame with the JOIN action, the receiver
+   MAY decide to notify the underlying multicast routing network its
+   willingness to receive packets from the flexicast flow that will be
+   sent by the source on the IP multicast address advertised in the
+   FC_ANNOUNCE frame.  The receiver MAY also wait to receive the FC_KEY
+   frame of the corresponding flexicast flow to avoid receiving packets
+   that it will not be able to process before receiving the required TLS
+   keys.
+
+6.  Group Management
+
+   TODO
+
+7.  Reliability
+
+   TODO
+
+8.  FLow and Congestion Control
+
+   TODO
+
+9.  New Frames
+
+   All frames defined in this document MUST only be sent in 1-RTT
+   packets.
+
+   If an endpoint receives a flexicast-specific frame in a different
+   packet type, it MUST close the connection with an error of type
+   FRAME_ENCODING_ERROR.
+
+   Receipt of flexicast-specific frames related to a Flexicast Flow ID
+   that is not added by an endpoint MUST be treated as a connection
+   error of type FC_PROTOCOL_VIOLATION.
+
+   If an endpoint receives a flexicast-specific frame with a Flexicast
+   Flow ID that it cannot process anymore (e.g., the flexicast flow
+   might have been abandoned), it MUST silently ignore the frame.
+
+   The new frames introduced below are for control-specific purpose
+   only, and MUST NOT be sent on the Flexicast flow.  Receipt of any of
+   the following frames on the Flexicast flow MUST be trated as a
+   connection error of type FC_PROTOCOL_VIOLATION.
+
+9.1.  FC_ANNOUNCE frame
+
+   The FC_ANNOUNCE frame informs the receiver that a Flexicast flow is
+   available or updated.  FC_ANNOUNCE frames MUST NOT be sent by the
+   receiver.  A Flexicast QUIC source receiving an FC_ANNOUNCE frame
+   MUST close the connection with a connection error of type
+   FC_PROTOCOL_VIOLATION.
+
+   FC_ANNOUNCE frames are formatted as shown in Figure 4.
+
+   FC_ANNOUNCE Frame {
+       Type (i) = TBD-00,
+       Length (8),
+       Flexicast Flow ID (8..160),
+       Sequence number (i),
+       IP Version (8),
+       Source IP (32, 128),
+       Group IP (32, 128),
+       UDP Port (16),
+       Ack delay timer (64),
+   }
+
+                     Figure 4: FC_ANNOUNCE Frame Format
+
+   FC_ANNOUNCE frames contain the following fields:
+
+   Length: An 8-bit unsigned internet containing the length of the
+   Flexicast Flow ID.  Values less than 1 and greated than 20 are
+   invalid and MUST be treated as a connection error of type
+   FRAME_ENCODING_ERROR.
+
+   Flexicast Flow ID: A Flexicast Flow ID of the specified length.
+
+   Sequence number: The monotically increasing sequence number related
+   to the advertised Flexicast Flow ID.
+
+   IP Version: An 8-bit unsigned integer containing the version of IP
+   used to advertise the Source IP and Group IP.  Values different than
+   4 (for IPv4) and 6 (IPv6) are invalid and MUST be treated as a
+   conneciton error of type FRAME_ENCODING_ERROR.
+
+   Source IP: The IP address of the multicast source, used for Single-
+   Source Multicast.
+
+   Group IP: The IP address of the multicast group.  The address MUST be
+   a multicast address.
+
+   UDP Port: The UDP destination port.
+
+   Ack delay timer: A 64-bit unsigned integer containing the delay, in
+   ms, between two acknowledgments from a receiver.
+
+   FC_ANNOUNCE frames are ack-eliciting.  If a packet containing an
+   FC_ANNOUNCE frame is considered lost, the peer SHOULD repeat it.
+
+   Sources are allowed to send multiple times FC_ANNOUNCE frames with an
+   increasing sequence number for the same Flexicast Flow ID.  New
+   FC_ANNOUNCE frames MAY contain updated information, e.g., a new Ack
+   delay timer.
+
+   Sources are allowed to advertise multiple Flexicast flows by sending
+   multiple parallel FC_ANNOUNCE frames with distinct Flexicast Flow
+   IDs.  The Sequence number is linked to a specific Flexicast Flow ID.
+   The same Sequence number can be used for two distinct Flexicast Flow
+   IDs.
+
+   TODO: the frame should also contain a Status field to indicate if the
+   flexicast flow is retired?
+
+9.2.  FC_STATE frame
+
+   The FC_STATE frame informs the endpoint of the state of the Flexicast
+   receiver in the Flexicast flow.  FC_STATE frames MAY be sent by both
+   endpoints (i.e., receiver and source).
+
+   FC_STATE frames are formatted as shown in Figure 5.
+
+   FC_STATE frame {
+       Type (i) = TDB-01,
+       Length (8),
+       Flexicast Flow ID (8..160),
+       Sequence number (i),
+       Action (u64),
+   }
+
+                      Figure 5: FC_STATE Frame Format
+
+   FC_STATE frames contain the following fields:
+
+   Length: An 8-bit unsigned internet containing the length of the
+   Flexicast Flow ID.  Values less than 1 and greated than 20 are
+   invalid and MUST be treated as a connection error of type
+   FRAME_ENCODING_ERROR.
+
+   Flexicast Flow ID: The Flexicast Flow ID of the Flexicast flow that
+   this frame relates to.
+
+   Sequence number: The monotically increasing sequence number related
+   to the advertised Flexicast Flow ID.
+
+   Action: The bit-encoded action, defined in Section Section 9.2.1.
+
+   FC_STATE frames are ack-eliciting.  If a packet containing an
+   FC_STATE frame is considered lost, the peer SHOULD repeat it.
+
+   For a same Flexicast flow (i.e., identical Flexicast Flow ID), both
+   endpoints use their own Sequence number.
+
+   A receiver sending an FC_STATE frame indicates the source its status
+   regarding the Flexicast flow indicated by the Flexicast Flow ID.  The
+   source MAY also send FC_STATE frames to a receiver to unilaterally
+   change the status of the receiver within the Flexicast flow indicated
+   by the Flexicast Flow ID.
+
+9.2.1.  FC_STATE actions
+
+   This section lists the defined Actions encoded in an FC_STATE frame.
+   An endpoint receiving an unknown value MUST treat it as a connection
+   error of type FC_PROTOCOL_VIOLATION.
+
+   The three following actions are receiver-specific.  These actions
+   MUST NOT be sent inside an FC_STATE frame sent by the source.  A
+   receiver receiving an FC_STATE frame with any of the following
+   actions MUST treat it as a connection error of type
+   FC_PROTOCOL_VIOLATION.
+
+   JOIN (0x01): The receiver joins the Flexicast flow.
+
+   LEAVE (0x02): The receiver leaves the Flexicast flow.
+
+   READY (0x03): The receiver is ready to receive content on the
+   Flexicast flow.
+
+   The following action is source-specific.  This action MUST NOT be
+   sent inside an FC_STATE frame sent by the receiver.  A source
+   receiving an FC_STATE frame with the following action MUST treat it
+   as a connection error of type FC_PROTOCOL_VIOLATION.
+
+   MUST_LEAVE (0x04): The source unilaterally decides that the receiver
+   MUST leave the Flexicast flow.
+
+9.3.  FC_KEY frame
+
+   The FC_KEY frame informs a receiver with the decryption key of a
+   Flexicast flow joined by the receiver.  FC_KEY frames MUST NOT be
+   sent by the receiver.  A Flexicast QUIC source receiving an FC_KEY
+   frame MUST clone the connection with a connection error of type
+   FC_PROTOCOL_VIOLATION.
+
+   FC_KEY frames are formatted as shown in Figure 6.
+
+   FC_KEY Frame {
+       Type (i) = TDB-02,
+       Length(8),
+       Flexicast Flow ID(8..160),
+       Sequence number (i),
+       Packet number (i),
+       Key length (i),
+       Key (..),
+       Algorithm (64),
+   }
+
+                       Figure 6: FC_KEY Frame Format
+
+   FC_KEY frames contain the following fields:
+
+   Length: An 8-bit unsigned internet containing the length of the
+   Flexicast Flow ID.  Values less than 1 and greated than 20 are
+   invalid and MUST be treated as a connection error of type
+   FRAME_ENCODING_ERROR.
+
+   Flexicast Flow ID: The Flexicast Flow ID of the Flexicast flow that
+   this frame relates to.
+
+   Sequence number: The monotically increasing sequence number related
+   to the advertised Flexicast Flow ID.
+
+   Packet number: The first packet number that the receiver must receive
+   with this key,
+
+   Key length: A var-int indicating the length of the decryption key.
+
+   Key: Byte-sequence of the decryption key of the Flexicast flow.
+
+   Algorithm: The bit-encoded algorithm used for decryption, defined in
+   Section Section 9.3.1.
+
+   FC_KEY frames are ack-eliciting.  If a packet containing an FC_STATE
+   frame is considered lost, the peer SHOULD repeat it.
+
+   The source MAY send new FC_KEY frames with an increased sequence
+   number to notify a new decryption key.  This mechanism can be used to
+   provide backward and forward secrecy with dynamic Flexicast groups.
+
+9.3.1.  FC_KEY algorithms
+
+   TODO: define the bit-encoded algorithms.
+
+10.  Discussion
+
+   This document has defined a simple extension to Multipath QUIC that
+   enables a QUIC connection to simulatenously use unicast paths and
+   multicast trees to deliver the same data to a set of receivers.  The
+   proposed protocol can be extended in different ways and improvements
+   will be proposed in separate documents.  We briefly describe some of
+   these possible extensions.
+
+   This version of Flexicast QUIC uses the existing QUIC mechanisms to
+   retransmit lost frames.  It is well known that Forward Erasure
+   Correction can improve the performance of multicast transmission when
+   losses occur.  Several authors have proposed techniques to add
+   Forward Erasure Correction to QUIC [QUIRL], [rQUIC],
+   [I-D.draft-michel-quic-fec].  FEC can be sent a priori to enable
+   receivers to recover from different packet losses without having to
+   wait for retransmissions or a posteriori by sending a repair symbol
+   that enables different receivers to recover different lost frames.
+
+   This version of Flexicast QUIC uses a key shared between the source
+   and all receivers to authenticate and encrypt the data sent by the
+   source over the multicast tree.  A malicious receiver who has
+   received the shared keys could inject fake data over the multicast
+   tree provided that it can spoof the IP address of the source.
+   Techniques have been proposed to authenticate the frames sent by the
+   source [I-D.draft-krose-multicast-security].  Subsequent documents
+   will detail how Flexicast QUIC can be extended to support such
+   techniques.
+
+   Multipath QUIC assumes that the congestion control mechanism operates
+   per path.  For Flexicast QUIC, a different congestion control
+   mechanism will be required for the unicast paths and the multicast
+   tree.  For the former, the QUIC congestion control mechanisms
+   [RFC9002] are applicable.  For the latter, multicast specific
+   congestion control mechanisms such as [RFC4654] will be required.
+   The current prototype uses a variant of the CUBIC congestion control.
+
+11.  Security Considerations
+
+   To be provided in the next version of this document.
+
+12.  IANA Considerations
+
+   IANA is requested to assign three new QUIC frame types from the "QUIC
+   Frame Types" registry available at
+   https://www.iana.org/assignments/quic/quic.xhtml#quic-frame-types
+
+   *  TBD-00 for the FC_ANNOUNCE frame defined in Section 9.1
+
+   *  TBD-01 for the FC_STATE frame defined in Section 9.2
+
+   *  TBD-02 for the FC_KEY frame defined in Section 9.3
+
+   IANA is requested to assign a new QUIC transport parameter from the
+   "QUIC Transport Parameters" registry available at
+   https://www.iana.org/assignments/quic/quic.xhtml#quic-transport
+
+   *  TBD-03 for the flexicast_support transport parameter defined in
+      Section 4
+
+13.  References
+
+13.1.  Normative References
+
+   [MULTIPATH-QUIC]
+              Liu, Y., Ma, Y., De Coninck, Q., Bonaventure, O., Huitema,
+              C., and M. Kühlewind, "Multipath Extension for QUIC", Work
+              in Progress, Internet-Draft, draft-ietf-quic-multipath-10,
+              8 July 2024, <https://datatracker.ietf.org/doc/html/draft-
+              ietf-quic-multipath-10>.
+
+   [QUIC-TRANSPORT]
+              Iyengar, J., Ed. and M. Thomson, Ed., "QUIC: A UDP-Based
+              Multiplexed and Secure Transport", RFC 9000,
+              DOI 10.17487/RFC9000, May 2021,
+              <https://www.rfc-editor.org/rfc/rfc9000>.
+
+   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
+              Requirement Levels", BCP 14, RFC 2119,
+              DOI 10.17487/RFC2119, March 1997,
+              <https://www.rfc-editor.org/rfc/rfc2119>.
+
+   [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
+              2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
+              May 2017, <https://www.rfc-editor.org/rfc/rfc8174>.
+
+13.2.  Informative References
+
+   [DIOT]     Diot, C., Levine, B., Lyles, B., Kassem, H., and D.
+              Balensiefen, "Deployment issues for the IP multicast
+              service and architecture", Institute of Electrical and
+              Electronics Engineers (IEEE), IEEE Network vol. 14, no. 1,
+              pp. 78-88, DOI 10.1109/65.819174, 2000,
+              <https://doi.org/10.1109/65.819174>.
+
+   [I-D.draft-krose-multicast-security]
+              Rose, K. and J. Holland, "Security and Privacy
+              Considerations for Multicast Transports", Work in
+              Progress, Internet-Draft, draft-krose-multicast-security-
+              06, 27 December 2023,
+              <https://datatracker.ietf.org/doc/html/draft-krose-
+              multicast-security-06>.
+
+   [I-D.draft-michel-quic-fec]
+              Michel, F. and O. Bonaventure, "Forward Erasure Correction
+              for QUIC loss recovery", Work in Progress, Internet-Draft,
+              draft-michel-quic-fec-01, 23 October 2023,
+              <https://datatracker.ietf.org/doc/html/draft-michel-quic-
+              fec-01>.
+
+   [I-D.pardue-quic-http-mcast]
+              Pardue, L., Bradbury, R., and S. Hurst, "Hypertext
+              Transfer Protocol (HTTP) over multicast QUIC", Work in
+              Progress, Internet-Draft, draft-pardue-quic-http-mcast-11,
+              4 July 2022, <https://datatracker.ietf.org/doc/html/draft-
+              pardue-quic-http-mcast-11>.
+
+   [MULTICAST-QUIC]
+              Holland, J., Pardue, L., and M. Franke, "Multicast
+              Extension for QUIC", Work in Progress, Internet-Draft,
+              draft-jholland-quic-multicast-05, 7 July 2024,
+              <https://datatracker.ietf.org/doc/html/draft-jholland-
+              quic-multicast-05>.
+
+   [QUIRL]    Michel, F. and O. Bonaventure, "QUIRL: Flexible QUIC Loss
+              Recovery for Low Latency Applications", Institute of
+              Electrical and Electronics Engineers (IEEE), IEEE/ACM
+              Transactions on Networking pp. 1-12,
+              DOI 10.1109/tnet.2024.3453759, 2024,
+              <https://doi.org/10.1109/tnet.2024.3453759>.
+
+   [RFC1112]  Deering, S., "Host extensions for IP multicasting", STD 5,
+              RFC 1112, DOI 10.17487/RFC1112, August 1989,
+              <https://www.rfc-editor.org/rfc/rfc1112>.
+
+   [RFC4607]  Holbrook, H. and B. Cain, "Source-Specific Multicast for
+              IP", RFC 4607, DOI 10.17487/RFC4607, August 2006,
+              <https://www.rfc-editor.org/rfc/rfc4607>.
+
+   [RFC4654]  Widmer, J. and M. Handley, "TCP-Friendly Multicast
+              Congestion Control (TFMCC): Protocol Specification",
+              RFC 4654, DOI 10.17487/RFC4654, August 2006,
+              <https://www.rfc-editor.org/rfc/rfc4654>.
+
+   [RFC9002]  Iyengar, J., Ed. and I. Swett, Ed., "QUIC Loss Detection
+              and Congestion Control", RFC 9002, DOI 10.17487/RFC9002,
+              May 2021, <https://www.rfc-editor.org/rfc/rfc9002>.
+
+   [RFC9293]  Eddy, W., Ed., "Transmission Control Protocol (TCP)",
+              STD 7, RFC 9293, DOI 10.17487/RFC9293, August 2022,
+              <https://www.rfc-editor.org/rfc/rfc9293>.
+
+   [rQUIC]    Garrido, P., Sanchez, I., Ferlin, S., Aguero, R., and O.
+              Alay, "rQUIC: Integrating FEC with QUIC for Robust
+              Wireless Communications", IEEE, 2019 IEEE Global
+              Communications Conference (GLOBECOM),
+              DOI 10.1109/globecom38437.2019.9013401, December 2019,
+              <https://doi.org/10.1109/globecom38437.2019.9013401>.
+
+Acknowledgments
+
+   TODO acknowledge.
+
+Authors' Addresses
+
+   Louis Navarre
+   UCLouvain
+   Email: louis.navarre@uclouvain.be
+
+
+   Olivier Bonaventure
+   UCLouvain
+   Email: olivier.bonaventure@uclouvain.be
