@@ -1552,7 +1552,7 @@ receiving packets that it will not be able to process before receiving the requi
 </div>
 </section>
 </div>
-<div id="flexicast-flow-memberhsip-management">
+<div id="sec-leave">
 <section id="section-6">
       <h2 id="name-flexicast-flow-memberhsip-m">
 <a href="#section-6" class="section-number selfRef">6. </a><a href="#name-flexicast-flow-memberhsip-m" class="section-name selfRef">Flexicast flow memberhsip management</a>
@@ -1716,12 +1716,11 @@ The source <span class="bcp14">MAY</span> also send FC_STATE frames to a receive
 <a href="#section-9.2.1" class="section-number selfRef">9.2.1. </a><a href="#name-fc_state-actions" class="section-name selfRef">FC_STATE actions</a>
           </h4>
 <p id="section-9.2.1-1">This section lists the defined Actions encoded in an FC_STATE frame. An endpoint receiving an unknown value <span class="bcp14">MUST</span> treat it as a connection error of type FC_PROTOCOL_VIOLATION.<a href="#section-9.2.1-1" class="pilcrow">¶</a></p>
-<p id="section-9.2.1-2">The three following actions are receiver-specific. These actions <span class="bcp14">MUST NOT</span> be sent inside an FC_STATE frame sent by the source. A receiver receiving an FC_STATE frame with any of the following actions <span class="bcp14">MUST</span> treat it as a connection error of type FC_PROTOCOL_VIOLATION.<a href="#section-9.2.1-2" class="pilcrow">¶</a></p>
-<p id="section-9.2.1-3">JOIN (0x01): The receiver joins the Flexicast flow.<a href="#section-9.2.1-3" class="pilcrow">¶</a></p>
-<p id="section-9.2.1-4">LEAVE (0x02): The receiver leaves the Flexicast flow.<a href="#section-9.2.1-4" class="pilcrow">¶</a></p>
-<p id="section-9.2.1-5">READY (0x03): The receiver is ready to receive content on the Flexicast flow.<a href="#section-9.2.1-5" class="pilcrow">¶</a></p>
-<p id="section-9.2.1-6">The following action is source-specific. This action <span class="bcp14">MUST NOT</span> be sent inside an FC_STATE frame sent by the receiver. A source receiving an FC_STATE frame with the following action <span class="bcp14">MUST</span> treat it as a connection error of type FC_PROTOCOL_VIOLATION.<a href="#section-9.2.1-6" class="pilcrow">¶</a></p>
-<p id="section-9.2.1-7">MUST_LEAVE (0x04): The source unilaterally decides that the receiver <span class="bcp14">MUST</span> leave the Flexicast flow.<a href="#section-9.2.1-7" class="pilcrow">¶</a></p>
+<p id="section-9.2.1-2">JOIN (0x01): The receiver joins the Flexicast flow.<a href="#section-9.2.1-2" class="pilcrow">¶</a></p>
+<p id="section-9.2.1-3">LEAVE (0x02): The receiver leaves the Flexicast flow.<a href="#section-9.2.1-3" class="pilcrow">¶</a></p>
+<p id="section-9.2.1-4">READY (0x03): The receiver is ready to receive content on the Flexicast flow.<a href="#section-9.2.1-4" class="pilcrow">¶</a></p>
+<p id="section-9.2.1-5">The actions JOIN and READY are receiver-specific. These actions <span class="bcp14">MUST NOT</span> be sent inside an FC_STATE frame sent by the source. A receiver receiving an FC_STATE frame with any of the following actions <span class="bcp14">MUST</span> treat it as a connection error of type FC_PROTOCOL_VIOLATION.
+The action LEAVE <span class="bcp14">MAY</span> be sent by both the receiver and the source, as detailed in <a href="#sec-leave" class="auto internal xref">Section 6</a>.<a href="#section-9.2.1-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
