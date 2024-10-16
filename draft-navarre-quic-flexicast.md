@@ -37,7 +37,7 @@ normative:
   MULTIPATH-QUIC: I-D.ietf-quic-multipath
 
 informative:
-  MULTICAST-QUIC: I-D.jholland-quic-multicast-05
+  I-D.jholland-quic-multicast-05:
   I-D.pardue-quic-http-mcast:
   RFC1112:
   RFC4607:
@@ -89,8 +89,8 @@ times.
 The deployment of QUIC opens an interesting opportunity to reconsider the
 utilization of IP Multicast. As QUIC runs above UDP, it could easily use
 IP multicast to deliver information along multicast trees. Multicast
-extensions to QUIC have already been proposed {{MULTICAST-QUIC}}
-{{I-D.pardue-quic-http-mcast}} and {{MULTICAST-QUIC}}.
+extensions to QUIC have already been proposed in
+{{I-D.pardue-quic-http-mcast}} and {{I-D.jholland-quic-multicast-05}}.
 
 
 Flexicast QUIC extends Multipath QUIC {{MULTIPATH-QUIC}}. Thanks
@@ -370,7 +370,20 @@ the same flexicast flow to saturate the Flexicast QUIC source.
 
 ## Source-side management
 
-At any point in time, the Flexicast QUIC source may decide to unilaterally remove a receiver from a flexicast flow.
+At any point in time, the Flexicast QUIC source MAY decide to unilaterally remove a receiver from a flexicast flow, by sending an FC_STATE frame with the LEAVE action.
+A malicious receiver might decide to ignore the frame; that is why this decision is done unilaterally, since for the source, the receiver is out of the flexicast flow.
+
+Reasons to decide on the source-side to remove receivers from the flexicast flow include:
+- A receiver is a bottleneck on the flexicast flow, i.e., the bit-rate of the flexicast flow becomes too low because of this receiver.
+  In that case, the bottleneck receiver is removed from the specific flexicast flow. The source can continue distributing the content either through
+  the unicast path with this receiver, or by letting the receiver join another flexicast flow which transmits data at a lower bit-rate.
+- A receiver experiences too many losses. Receivers send feedback to the source. Too many losses degrade the quality of experience for the applications.
+  To recover from them, there is a need for retransmissions, which can take up to several RTTs. The source SHOULD decive to remove the receiver from the
+  flexicast flow and continue receiving data through unicast, even temporarilly. A reason why it would be better to continue through the unicast path
+  is that the underlying IP multicast tree may be failing.
+
+The two aforementionned reasons could include malicious receivers whishing to degrade the overall performance of communication through the flexicast flow.
+By letting the source unilaterally decide to remove receivers from a flexicast flow, the impact of malicious clients is limited.
 
 # Reliability
 
