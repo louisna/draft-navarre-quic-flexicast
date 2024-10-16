@@ -1267,8 +1267,8 @@ times.<a href="#section-1-2" class="pilcrow">¶</a></p>
 <p id="section-1-3">The deployment of QUIC opens an interesting opportunity to reconsider the
 utilization of IP Multicast. As QUIC runs above UDP, it could easily use
 IP multicast to deliver information along multicast trees. Multicast
-extensions to QUIC have already been proposed <span>[<a href="#MULTICAST-QUIC" class="cite xref">MULTICAST-QUIC</a>]</span>
-        <span>[<a href="#I-D.pardue-quic-http-mcast" class="cite xref">I-D.pardue-quic-http-mcast</a>]</span> and <span>[<a href="#MULTICAST-QUIC" class="cite xref">MULTICAST-QUIC</a>]</span>.<a href="#section-1-3" class="pilcrow">¶</a></p>
+extensions to QUIC have already been proposed in
+<span>[<a href="#I-D.pardue-quic-http-mcast" class="cite xref">I-D.pardue-quic-http-mcast</a>]</span> and <span>[<a href="#I-D.jholland-quic-multicast-05" class="cite xref">I-D.jholland-quic-multicast-05</a>]</span>.<a href="#section-1-3" class="pilcrow">¶</a></p>
 <p id="section-1-4">Flexicast QUIC extends Multipath QUIC <span>[<a href="#MULTIPATH-QUIC" class="cite xref">MULTIPATH-QUIC</a>]</span>. Thanks
 to this recent QUIC extension, a QUIC connection can use several paths
 simultaneously to exchange information between two hosts. This document
@@ -1588,7 +1588,18 @@ the same flexicast flow to saturate the Flexicast QUIC source.<a href="#section-
         <h3 id="name-source-side-management">
 <a href="#section-6.2" class="section-number selfRef">6.2. </a><a href="#name-source-side-management" class="section-name selfRef">Source-side management</a>
         </h3>
-<p id="section-6.2-1">At any point in time, the Flexicast QUIC source may decide to unilaterally remove a receiver from a flexicast flow.<a href="#section-6.2-1" class="pilcrow">¶</a></p>
+<p id="section-6.2-1">At any point in time, the Flexicast QUIC source <span class="bcp14">MAY</span> decide to unilaterally remove a receiver from a flexicast flow, by sending an FC_STATE frame with the LEAVE action.
+A malicious receiver might decide to ignore the frame; that is why this decision is done unilaterally, since for the source, the receiver is out of the flexicast flow.<a href="#section-6.2-1" class="pilcrow">¶</a></p>
+<p id="section-6.2-2">Reasons to decide on the source-side to remove receivers from the flexicast flow include:
+- A receiver is a bottleneck on the flexicast flow, i.e., the bit-rate of the flexicast flow becomes too low because of this receiver.
+  In that case, the bottleneck receiver is removed from the specific flexicast flow. The source can continue distributing the content either through
+  the unicast path with this receiver, or by letting the receiver join another flexicast flow which transmits data at a lower bit-rate.
+- A receiver experiences too many losses. Receivers send feedback to the source. Too many losses degrade the quality of experience for the applications.
+  To recover from them, there is a need for retransmissions, which can take up to several RTTs. The source <span class="bcp14">SHOULD</span> decive to remove the receiver from the
+  flexicast flow and continue receiving data through unicast, even temporarilly. A reason why it would be better to continue through the unicast path
+  is that the underlying IP multicast tree may be failing.<a href="#section-6.2-2" class="pilcrow">¶</a></p>
+<p id="section-6.2-3">The two aforementionned reasons could include malicious receivers whishing to degrade the overall performance of communication through the flexicast flow.
+By letting the source unilaterally decide to remove receivers from a flexicast flow, the impact of malicious clients is limited.<a href="#section-6.2-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -1884,13 +1895,13 @@ https://www.iana.org/assignments/quic/quic.xhtml#quic-transport<a href="#section
         <dd>
 <span class="refAuthor">Michel, F.</span> and <span class="refAuthor">O. Bonaventure</span>, <span class="refTitle">"Forward Erasure Correction for QUIC loss recovery"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-michel-quic-fec-01</span>, <time datetime="2023-10-23" class="refDate">23 October 2023</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-michel-quic-fec-01">https://datatracker.ietf.org/doc/html/draft-michel-quic-fec-01</a>&gt;</span>. </dd>
 <dd class="break"></dd>
+<dt id="I-D.jholland-quic-multicast-05">[I-D.jholland-quic-multicast-05]</dt>
+        <dd>
+<span class="refAuthor">Holland, J.</span>, <span class="refAuthor">Pardue, L.</span>, and <span class="refAuthor">M. Franke</span>, <span class="refTitle">"Multicast Extension for QUIC"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-jholland-quic-multicast-05</span>, <time datetime="2024-07-07" class="refDate">7 July 2024</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-jholland-quic-multicast-05">https://datatracker.ietf.org/doc/html/draft-jholland-quic-multicast-05</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="I-D.pardue-quic-http-mcast">[I-D.pardue-quic-http-mcast]</dt>
         <dd>
 <span class="refAuthor">Pardue, L.</span>, <span class="refAuthor">Bradbury, R.</span>, and <span class="refAuthor">S. Hurst</span>, <span class="refTitle">"Hypertext Transfer Protocol (HTTP) over multicast QUIC"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-pardue-quic-http-mcast-11</span>, <time datetime="2022-07-04" class="refDate">4 July 2022</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-pardue-quic-http-mcast-11">https://datatracker.ietf.org/doc/html/draft-pardue-quic-http-mcast-11</a>&gt;</span>. </dd>
-<dd class="break"></dd>
-<dt id="MULTICAST-QUIC">[MULTICAST-QUIC]</dt>
-        <dd>
-<span class="refAuthor">Holland, J.</span>, <span class="refAuthor">Pardue, L.</span>, and <span class="refAuthor">M. Franke</span>, <span class="refTitle">"Multicast Extension for QUIC"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-jholland-quic-multicast-05</span>, <time datetime="2024-07-07" class="refDate">7 July 2024</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-jholland-quic-multicast-05">https://datatracker.ietf.org/doc/html/draft-jholland-quic-multicast-05</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="QUIRL">[QUIRL]</dt>
         <dd>
