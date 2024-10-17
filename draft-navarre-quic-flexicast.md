@@ -80,7 +80,7 @@ between two hosts, there is no guarantee that it will be possible to create and
 maintain a multicast tree between these two hosts to efficiently exchange
 data using IP multicast. To cope with this problem, the applications must
 implement a multicast solution and a unicast solution. This increases the
-complexity and the cost of the application. 
+complexity and the cost of the application.
 For this reason, many applications that send
 the same information to a large set of receivers like streaming services
 or software updates, still rely on TCP or QUIC over unicast. This is inefficient from
@@ -213,7 +213,7 @@ send a copy of this packet to all receivers, e.g. using system calls such as sen
 In this case, the source maintains a flexicast flow where it replicates each packet
 towards each receiver. It also sends an FC_ANNOUNCE frame to advertise the flexicast flow,
 using the receiver's IP address as a destination instead of a multicast address and later
-an FC_KEY frame containing the shared keys. 
+an FC_KEY frame containing the shared keys.
 
 
 In this example, R3 lies in a non-multicast-capable network, and cannot receive content through the
