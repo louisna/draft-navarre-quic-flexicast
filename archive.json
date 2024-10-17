@@ -1,7 +1,7 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-10-15T00:45:07.440721+00:00",
-  "repo": "louisna/draft-navarre-quic-multicast",
+  "timestamp": "2024-10-17T00:44:27.893035+00:00",
+  "repo": "louisna/draft-navarre-quic-flexicast",
   "labels": [
     {
       "name": "bug",
@@ -50,5 +50,58 @@
     }
   ],
   "issues": [],
-  "pulls": []
+  "pulls": [
+    {
+      "number": 1,
+      "id": "PR_kwDOKWZDcM5-rBw8",
+      "title": "Add handshake negotiation",
+      "url": "https://github.com/louisna/draft-navarre-quic-flexicast/pull/1",
+      "state": "CLOSED",
+      "author": "louisna",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "",
+      "createdAt": "2024-10-15T12:53:37Z",
+      "updatedAt": "2024-10-16T09:42:12Z",
+      "baseRepository": "louisna/draft-navarre-quic-flexicast",
+      "baseRefName": "main",
+      "baseRefOid": "013828ee206721fb4c16f033fbd7d95109dcbb63",
+      "headRepository": "louisna/draft-navarre-quic-flexicast",
+      "headRefName": "frames",
+      "headRefOid": "4b7c2cef307c91058cdb429daa384a7bd27b4c30",
+      "closedAt": "2024-10-16T09:33:20Z",
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
+    },
+    {
+      "number": 2,
+      "id": "PR_kwDOKWZDcM5-zLEc",
+      "title": "Add more details to the protocol",
+      "url": "https://github.com/louisna/draft-navarre-quic-flexicast/pull/2",
+      "state": "CLOSED",
+      "author": "louisna",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "",
+      "createdAt": "2024-10-16T09:33:48Z",
+      "updatedAt": "2024-10-16T09:42:12Z",
+      "baseRepository": "louisna/draft-navarre-quic-flexicast",
+      "baseRefName": "main",
+      "baseRefOid": "0efca3e8e5ce94454b3f78690f0a8e5903c1bd98",
+      "headRepository": "louisna/draft-navarre-quic-flexicast",
+      "headRefName": "frames",
+      "headRefOid": "4b7c2cef307c91058cdb429daa384a7bd27b4c30",
+      "closedAt": "2024-10-16T09:34:27Z",
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
+    }
+  ]
 }
