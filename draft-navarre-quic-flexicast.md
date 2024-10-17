@@ -383,15 +383,47 @@ Reasons to decide on the source-side to remove receivers from the flexicast flow
   is that the underlying IP multicast tree may be failing.
 
 The two aforementionned reasons could include malicious receivers whishing to degrade the overall performance of communication through the flexicast flow.
-By letting the source unilaterally decide to remove receivers from a flexicast flow, the impact of malicious clients is limited.
+By letting the source unilaterally decide to remove receivers from a flexicast flow, the impact of malicious receivers is limited.
 
 # Reliability
 
-TODO
+The reliability mechanism of Flexicast QUIC uses the standard QUIC mechanism.
+This section only details the reliability mechanism for frames sent on the flexicast flow.
+This document does not alter the reliability mechanism of QUIC as defined in {{RFC9002}} for packets sent on the unicast path.
+
+Receivers regularly send MP_ACK frames back to the source on their unicast path. Receivers MUST NOT send MP_ACK on the flexicast flow since this path is unidirectional.
+A Flexicast QUIC source receiving an MP_ACK from a receiver on the flexicast flow MUST close the connection with this receiver with an error of type FC_PROTOCOL_VIOLATION.
+The MP_ACK frames sent by the receivers on their unicast path include the `space_id` field to refer to the flexicast flow.
+
+A major change between {{RFC9002}}, and to some extend {{MULTIPATH-QUIC}} with this document is that a Flexicast QUIC takes into account acknowledgments from multiple receivers for the same data.
+A Flexicast QUIC source MUST wait for the acknowledgment from all receivers listening to the flexicast flow before releasing state for the transmitted data.
+An acknowledgment-aggregation mechanism MUST be implemented, at least on the Flexicast QUIC source, to advance its state when all members of the flexicast flow sent MP_ACK frames to acknowledge some packets sent on the flexicast flow.
+
+Bottleneck or malicious receivers may slow down, and even block the transmission of data, thus impacting the quality of service for other receivers.
+Similarly to {{RFC9002}}, a Flexicast QUIC source may decide to stop the communication with a specific receiver if packet retransmissions do not trigger MP_ACK frames from this receiver to advance the state of communication.
+A Flexicast QUIC source SHOULD remove bottleneck or malicious receivers from the flexicast flow in that case, and MAY continue transmitting data through the unicast path with these receivers instead, thus relying on {{RFC9002}}, in case the severe losses occur because of the underlying multicast distribution tree.
+
+The Flexicast QUIC source is responsible to decide whether to send retransmitted frames on the flexicast flow to all receivers, or specifically to receivers individually on their unicast path.
+Receivers are not impacted by this choice since {{MULTIPATH-QUIC}} specification authorizes to retransmit frames on another path than the initial path on which they were sent.
+The first case would be more efficient if multiple receivers lost the same packet; the second case is more interesting for isolated losses to avoid healthy receivers receiving duplicate frames.
 
 # FLow and Congestion Control
 
-TODO
+TODO: find a good mechanism for Flow Control. There are several possibilities, like requiring receivers to send new limits to stay in the group, or assume that the limits are of XXX bytes, and increase this over time unilaterally.
+
+TODO: what do we detail regarding the congestion control?
+
+There are currently several possibilities regarding congestion control for Flexicast QUIC. A first idea is to maintain constant bit-rate delivery and exposing multiple flexicast flows operating at diffeent bit-rates.
+As such, if a receiver sees degradation in its communication (e.g., congestion or increased delay in the network), it may switch to a lower bit-rate flexicast flow. However, this idea does not solve the problem of increasing the congestion in the network.
+
+The other idea outlines the possibility to take into account all receiver-specific bit-rate to chose the overall bit-rate on the flexicast flow, e.g., by requiring that the flexicast flow bit-rate is the lowest bit-rate among all receivers listening to this flexicast flow.
+Since receivers regularly send MP_ACK frames, it is possible for the source to adjust a per-receiver bit-rate (or congestion window) and use the minimum value as the value for the flexicast flow.
+Of course, such method paves the way to malicious receivers decreasing on-purpose the flexicast flow bit-rate. Applications SHOULD provide to a Flexicast QUIC source a "minimum bit-rate" to ensure a minimum quality of service for the receivers.
+Malicious or bottleneck receivers with a per-receiver bit-rate below this minimum bit-rate SHOULD be removed from the flexicast flow membership.
+Since the Flexicast QUIC source can unilaterally evict such receivers, it can adjust the flexicast flow bit-rate without considering these receivers.
+
+A mix of both approaches is also possible. A Flexicast QUIC source may expose multiple flexicast flow, each operating at different bit-rate windows. For example, a first window would operate at a minimum bit-rate of 2 Mbps and a maximum bit-rate of 5 Mbps; another flexicast flow would operate between 5 Mbps and 10 Mbps,...
+Receivers falling below the 2 Mbps bit-rate SHOULD be evicted from flexicast delivery; a Flexicast QUIC source MAY decide to continue the delivery through the unicast path.
 
 # New Frames {#sec-frames}
 
