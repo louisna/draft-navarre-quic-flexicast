@@ -1262,40 +1262,42 @@ transmission of a single packet to a group of receivers. In this document,
 we focus on Source-Specific Multicast for IP <span>[<a href="#RFC4607" class="cite xref">RFC4607</a>]</span>, but the solution
 proposed could also be applied to other forms of IP Multicast.<a href="#section-1-1" class="pilcrow">¶</a></p>
 <p id="section-1-2">Although IP Multicast is not a new solution, it is not as widely used by
-applications as transport protocols like TCP <span>[<a href="#RFC9293" class="cite xref">RFC9293</a>]</span> or QUIC <span>[<a href="#QUIC-TRANSPORT" class="cite xref">QUIC-TRANSPORT</a>]</span>
-do not provide multicast transport support.
+applications as popular transport protocols like TCP <span>[<a href="#RFC9293" class="cite xref">RFC9293</a>]</span> or QUIC <span>[<a href="#QUIC-TRANSPORT" class="cite xref">QUIC-TRANSPORT</a>]</span>
+do not support multicast.
 Current IP Multicast applications include IP TV distribution in ISP networks
 and trading services for financial institutions. Many reasons explain the difficulty
 of deploying IP Multicast <span>[<a href="#DIOT" class="cite xref">DIOT</a>]</span>. From the application's viewpoint, a
 key challenge with IP Multicast is that even if there is a unicast path
 between two hosts, there is no guarantee that it will be possible to create and
 maintain a multicast tree between these two hosts to efficiently exchange
-data using IP multicast.
-Applications must implement multiple protocols in case a recipient does not support
-multicast?
+data using IP multicast. To cope with this problem, the applications must
+implement a multicast solution and a unicast solution. This increases the
+complexity and the cost of the application.
 For this reason, many applications that send
 the same information to a large set of receivers like streaming services
-or software updates, still rely on TCP or QUIC. This is inefficient from
+or software updates, still rely on TCP or QUIC over unicast. This is inefficient from
 the network viewpoint as the network carries the same information multiple
 times.<a href="#section-1-2" class="pilcrow">¶</a></p>
 <p id="section-1-3">The deployment of QUIC opens an interesting opportunity to reconsider the
 utilization of IP Multicast. As QUIC runs above UDP, it could easily use
 IP multicast to deliver information along multicast trees. Multicast
 extensions to QUIC have already been proposed in
-<span>[<a href="#I-D.pardue-quic-http-mcast" class="cite xref">I-D.pardue-quic-http-mcast</a>]</span> and <span>[<a href="#I-D.jholland-quic-multicast-05" class="cite xref">I-D.jholland-quic-multicast-05</a>]</span>.<a href="#section-1-3" class="pilcrow">¶</a></p>
-<p id="section-1-4">Flexicast QUIC extends Multipath QUIC <span>[<a href="#MULTIPATH-QUIC" class="cite xref">MULTIPATH-QUIC</a>]</span>. Thanks
-to this recent QUIC extension, a QUIC connection can use several paths
-simultaneously to exchange information between two hosts. This document
-proposes a simple extension to Multipath QUIC that enables to share an
+<span>[<a href="#I-D.pardue-quic-http-mcast" class="cite xref">I-D.pardue-quic-http-mcast</a>]</span> and <span>[<a href="#I-D.jholland-quic-multicast-05" class="cite xref">I-D.jholland-quic-multicast-05</a>]</span>.
+To our knowledge, these extensions have not been fully implemented and deployed.<a href="#section-1-3" class="pilcrow">¶</a></p>
+<p id="section-1-4">Flexicast QUIC takes a different approach. Instead of extending QUIC <span>[<a href="#QUIC-TRANSPORT" class="cite xref">QUIC-TRANSPORT</a>]</span>,
+Flexicast QUIC extends Multipath QUIC <span>[<a href="#MULTIPATH-QUIC" class="cite xref">MULTIPATH-QUIC</a>]</span>. Multipath QUIC
+already includes several features that are very useful to allow a QUIC
+connection to use unicast and multicast simultaneously.<a href="#section-1-4" class="pilcrow">¶</a></p>
+<p id="section-1-5">Flexicast QUIC proposes a simple extension to Multipath QUIC that enables to share an
 additional path between multiple receivers. The destination address of
 this path can be a multicast IP address and rely on a multicast forwarding
 mechanism (e.g., IP Multicast) to transmit the packets.
 This document defines the core design of Flexicast QUIC starting from Multipath QUIC.
-Side documents will further expand this design to add new features.<a href="#section-1-4" class="pilcrow">¶</a></p>
-<p id="section-1-5">This document is organized as follows. After having specified some conventions
+Side documents will further expand this design to add new features.<a href="#section-1-5" class="pilcrow">¶</a></p>
+<p id="section-1-6">This document is organized as follows. After having specified some conventions
 in <a href="#sec-conventions" class="auto internal xref">Section 2</a>, we provide a brief overview of Flexicast QUIC in
 <a href="#sec-flexicast" class="auto internal xref">Section 3</a>. We describe in more details the Flexicast QUIC handshake
-in <a href="#sec-handshake" class="auto internal xref">Section 4</a> and then the new QUIC frames in <a href="#sec-frames" class="auto internal xref">Section 10</a>.<a href="#section-1-5" class="pilcrow">¶</a></p>
+in <a href="#sec-handshake" class="auto internal xref">Section 4</a> and then the new QUIC frames in <a href="#sec-frames" class="auto internal xref">Section 10</a>.<a href="#section-1-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="sec-conventions">
@@ -1315,7 +1317,7 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
 <a href="#section-3" class="section-number selfRef">3. </a><a href="#name-flexicast-quic" class="section-name selfRef">Flexicast QUIC</a>
       </h2>
 <p id="section-3-1">Multipath QUIC was designed to enable the simultaneous utilization of multiple
-paths inside a single QUIC connection. A Multipath QUIC connection
+paths inside one QUIC connection. A Multipath QUIC connection
 starts with a handshake like a regular QUIC connection, besides the utilization
 of the initial_max_path_id to negotiate the multipath extension. This parameter
 specifies the maximum path identifier that an endpoint is willing to maintain
@@ -1377,25 +1379,41 @@ each receiver. This path is used for two very different purposes.
 First, it acts as a control channel and enables the source to
 exchange control information with each receiver. Second, it can be used to transmit
 or retransmit data that cannot be delivered along the multicast tree.<a href="#section-3-6" class="pilcrow">¶</a></p>
-<p id="section-3-7">In addition, Flexicast QUIC receivers <span class="bcp14">MAY</span> create additional paths with shared keys to receive
-content through multicast delivery.
-This is illustrated in <a href="#fig-flexicast-2" class="auto internal xref">Figure 2</a>.
-Receivers R1 and R2 open a new path and use the same decryption key to read incoming packets.
-The new path uses an IP multicast destination address and is unidirectional from the source
-to the receivers. The remaining of this document refers to this shared, unidirectional path as the
-<strong>flexicast flow</strong>.
-The Flexicast QUIC source uses the flexicast flow to efficiently sends data to multiple receivers
+<p id="section-3-7">Most of the data sent over a Flexicast QUIC connection is transmitted along what
+we call a flexicast flow. A <strong>flexicast flow</strong> is a unidirectional path from a source
+to a group of receivers. An important characteristic of a flexicast flow is that
+all the packets sent by the source over this flow are secured using keys that are
+shared between the source and the receivers attached to the flexicast flow.<a href="#section-3-7" class="pilcrow">¶</a></p>
+<p id="section-3-8">Flexicast QUIC supports two types of flexicast flows. The first type flexicast flow
+is an IP multicast tree. A source creates an IP multicast tree and selects a set
+of encryption and authentication keys. It then advertises the source and
+group address of this flexicast flow using the FC_ANNOUNCE frame to
+the receivers that join the multicast tree. The source then uses the FC_KEY frame
+to avertise the shared keys to each receiver. They can now receive and decrypt
+the data sent by the source along the multicast tree.
+The Flexicast QUIC source uses this flexicast flow to efficiently sends data to multiple receivers
 simultaneously (R1 and R2 in <a href="#fig-flexicast-2" class="auto internal xref">Figure 2</a>).
-R1 and R2 use their unicast path, created at connection establishment, to send acknowledgment to
-the source and to receive retransmitted frames.<a href="#section-3-7" class="pilcrow">¶</a></p>
-<p id="section-3-8">In this example, R3 lies in a non-multicast-capable network, and cannot receive content through the
+R1 and R2 use their unicast path, created at connection establishment, to return acknowledgments.
+A source can retransmit lost data either on the flexicast flow or over a specific unicast path,
+e.g. when some data was missing at only one receiver.<a href="#section-3-8" class="pilcrow">¶</a></p>
+<p id="section-3-9">Flexicast QUIC supports non-multicast-capable receivers in two different ways. A first
+approach is to use the unicast path to deliver the data to such receivers. This implies
+that each data must be authenticated and encrypted using the TLS keys derived over each
+unicast path. This is not efficient when there are multiple receivers.
+Flexicast QUIC supports a second type of flexicast flow which improves performance when
+there are multiple unicast receivers. For these receivers, it is more efficient from the
+source viewpoint to encrypt and authenticate each QUIC packet using shared keys and then
+send a copy of this packet to all receivers, e.g. using system calls such as sendmmsg.
+In this case, the source maintains a flexicast flow where it replicates each packet
+towards each receiver. It also sends an FC_ANNOUNCE frame to advertise the flexicast flow,
+using the receiver's IP address as a destination instead of a multicast address and later
+an FC_KEY frame containing the shared keys.<a href="#section-3-9" class="pilcrow">¶</a></p>
+<p id="section-3-10">In this example, R3 lies in a non-multicast-capable network, and cannot receive content through the
 flexicast flow. Instead, it relies on its unicast path, created at connection establishment to receive
-data from the source.<a href="#section-3-8" class="pilcrow">¶</a></p>
-<p id="section-3-9">Flexicast flow-specific information, such as the IP multicast destination address, are advertised
-by the source on the unicast path using the new frames defined in this document (see <a href="#sec-frames" class="auto internal xref">Section 10</a>).<a href="#section-3-9" class="pilcrow">¶</a></p>
+data from the source.<a href="#section-3-10" class="pilcrow">¶</a></p>
 <span id="name-a-flexicast-quic-connection-"></span><div id="fig-flexicast-2">
 <figure id="figure-2">
-        <div class="alignLeft art-text artwork" id="section-3-10.1">
+        <div class="alignLeft art-text artwork" id="section-3-11.1">
 <pre>
 +----------------------------------------+
 |   +----------------------------+       |    =======&gt; flexicast flow
@@ -1413,8 +1431,8 @@ by the source on the unicast path using the new frames defined in this document 
 <a href="#name-a-flexicast-quic-connection-" class="selfRef">A Flexicast QUIC connection is composed of two types of paths: (1) one bidirectional, unique, unicast path between the source and each receiver and (2) a flexicast flow from the source to a set of receivers relyinf on a multicast distribution tree</a>
         </figcaption></figure>
 </div>
-<p id="section-3-11">At any point in time, if the network condition of a receiver listening to the Flexicast flow degrades, e.g., because the underlying multicast tree fails or because the receiver moves into a non-multicast network, it <span class="bcp14">MAY</span> leave the Flexicast flow and continue receiving content through its unicast path, similarly to R3.
-The seamless transition between the flexicast flow and unicast path is possible because these are Multipath QUIC paths.<a href="#section-3-11" class="pilcrow">¶</a></p>
+<p id="section-3-12">At any point in time, if the network condition of a receiver listening to the Flexicast flow degrades, e.g., because the underlying multicast tree fails or because the receiver moves into a non-multicast network, it <span class="bcp14">MAY</span> leave the Flexicast flow and continue receiving content through its unicast path, similarly to R3.
+The seamless transition between the flexicast flow and unicast path is possible because these are Multipath QUIC paths.<a href="#section-3-12" class="pilcrow">¶</a></p>
 <div id="extensions-to-multipath-quic">
 <section id="section-3.1">
         <h3 id="name-extensions-to-multipath-qui">
@@ -1477,10 +1495,10 @@ The new transport parameter is defined as follows:<a href="#section-4-1" class="
           <p id="section-4-2.1.1">flexicast_support (current version uses TBD-03): the presence of this transport parameter indicates support of the flexicast extension. The transport parameter contains two boolean values, respectively indicating support of IPv4 and IPv6 for multicast addresses. If an endpoint receives the flexicast_support transport parameter with both IPv4 and IPv6 supports set to false (0), it must close the connection with an error type of FC_PROTOCOL_VIOLATION.<a href="#section-4-2.1.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
-<p id="section-4-3">The final support of the flexicast extension is conditioned to the support of the multipath extension, as defined in <span>[<a href="#MULTIPATH-QUIC" class="cite xref">MULTIPATH-QUIC</a>]</span>.
+<p id="section-4-3">The support of the flexicast extension is conditioned to the support of the multipath extension, as defined in <span>[<a href="#MULTIPATH-QUIC" class="cite xref">MULTIPATH-QUIC</a>]</span>.
 Since a Flexicast flow is a new multipath path, the support of multipath, with sufficient (e.g., at least 2) path ID, is required, as defined in <span><a href="https://datatracker.ietf.org/doc/html/draft-ietf-quic-multipath-10#section-2" class="relref">Section 2</a> of [<a href="#MULTIPATH-QUIC" class="cite xref">MULTIPATH-QUIC</a>]</span>.<a href="#section-4-3" class="pilcrow">¶</a></p>
 <p id="section-4-4">An endpoint receiving the flexicast_support transport parameter from its peer, without support for multicast <span class="bcp14">MUST</span> ignore the flexicast_support transport parameter, as if the peer does not support the flexicast extension.<a href="#section-4-4" class="pilcrow">¶</a></p>
-<p id="section-4-5">The extension does not change the definition of any transport parameter defined in <span><a href="https://rfc-editor.org/rfc/rfc9000#section-18.2" class="relref">Section 18.2</a> of [<a href="#QUIC-TRANSPORT" class="cite xref">QUIC-TRANSPORT</a>]</span>.<a href="#section-4-5" class="pilcrow">¶</a></p>
+<p id="section-4-5">The extension does not change the definition of the transport parameters defined in <span><a href="https://rfc-editor.org/rfc/rfc9000#section-18.2" class="relref">Section 18.2</a> of [<a href="#QUIC-TRANSPORT" class="cite xref">QUIC-TRANSPORT</a>]</span>.<a href="#section-4-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="initialisation-of-a-flexicast-flow">
