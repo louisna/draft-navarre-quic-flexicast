@@ -81,18 +81,22 @@ Table of Contents
      6.2.  Source-side management
    7.  Reliability
    8.  FLow and Congestion Control
-   9.  New Frames
-     9.1.  FC_ANNOUNCE frame
-     9.2.  FC_STATE frame
-       9.2.1.  FC_STATE actions
-     9.3.  FC_KEY frame
-       9.3.1.  FC_KEY algorithms
-   10. Discussion
-   11. Security Considerations
-   12. IANA Considerations
-   13. References
-     13.1.  Normative References
-     13.2.  Informative References
+   9.  Packet protection
+     9.1.  Protection Keys
+     9.2.  Nonce Calculation
+     9.3.  Key Update
+   10. New Frames
+     10.1.  FC_ANNOUNCE frame
+     10.2.  FC_STATE frame
+       10.2.1.  FC_STATE actions
+     10.3.  FC_KEY frame
+       10.3.1.  FC_KEY algorithms
+   11. Discussion
+   12. Security Considerations
+   13. IANA Considerations
+   14. References
+     14.1.  Normative References
+     14.2.  Informative References
    Acknowledgments
    Authors' Addresses
 
@@ -142,7 +146,7 @@ Table of Contents
    This document is organized as follows.  After having specified some
    conventions in Section 2, we provide a brief overview of Flexicast
    QUIC in Section 3.  We describe in more details the Flexicast QUIC
-   handshake in Section 4 and then the new QUIC frames in Section 9.
+   handshake in Section 4 and then the new QUIC frames in Section 10.
 
 2.  Conventions and Definitions
 
@@ -244,7 +248,7 @@ Table of Contents
 
    Flexicast flow-specific information, such as the IP multicast
    destination address, are advertised by the source on the unicast path
-   using the new frames defined in this document (see Section 9).
+   using the new frames defined in this document (see Section 10).
 
 +----------------------------------------+       =======> flexicast flow
 |   +----------------------------+       |
@@ -323,10 +327,13 @@ Table of Contents
    establishment since each unicast path has its own set of TLS keys.
    To secure the transmission of Flexicast QUIC packets along the
    flexicast flow, the source generates an independent set of security
-   keys and shares them using the FC_KEY frame (see Section 9.3) to all
+   keys and shares them using the FC_KEY frame (see Section 10.3) to all
    receivers over the unicast path.  Since this frame is sent over the
    unicast paths, it is authenticated and encrypted using the TLS keys
    associated to each unicast path.
+
+   Section 9 gives more details on the changes from [MULTIPATH-QUIC] to
+   protect packets sent on the flexicast flow.
 
 4.  Handshake Negotiation and Transport parameter
 
@@ -381,7 +388,7 @@ Table of Contents
 5.1.  Flexicast Flow Announcement
 
    A Flexicast QUIC source announces flexicast flows through the
-   FC_ANNOUNCE frame (see Section 9.1).  Flexicast QUIC replaces the
+   FC_ANNOUNCE frame (see Section 10.1).  Flexicast QUIC replaces the
    concept of Connection ID with the Flexicast Flow ID.  Concretelly,
    these two terms refer to the same concept.  Since the flexicast flow
    is unidirectional, refering to this value as a "connection" ID would
@@ -416,7 +423,7 @@ Table of Contents
 
    After receiving an FC_ANNOUNCE frame dvertising a flexicast flow, a
    receiver MAY decide to join it.  Flexicast flow management is handled
-   with the FC_STATE frame (see Section 9.2).  The receiver sends an
+   with the FC_STATE frame (see Section 10.2).  The receiver sends an
    FC_STATE frame with the Flexicast Flow ID of the flexicast flow it
    wants to join and the JOIN action. _TODO: add a finite state machine
    of the receiver and source status._
@@ -608,7 +615,61 @@ Table of Contents
    delivery; a Flexicast QUIC source MAY decide to continue the delivery
    through the unicast path.
 
-9.  New Frames
+9.  Packet protection
+
+   Packet protection for QUIC version 1 is specified in Section 5 of
+   [QUIC-TLS].  Section 4 of [MULTIPATH-QUIC] further expands this
+   design when multiple paths with different packet number spaces are
+   used.  Because the flexicast flow is shared among multiple receivers,
+   this document modifies the design from Section 4 of [MULTIPATH-QUIC].
+
+9.1.  Protection Keys
+
+   This document extends the design from [MULTIPATH-QUIC] by requiring
+   that all flexicast flows use different TLS protection keys.  Of
+   course, these protections keys MUST be different from the protection
+   keys derived during the handshake between the source and any
+   receiver.
+
+   The per-flexicast flow protection keys are derived by the Flexicast
+   QUIC source.  The required material, e.g., master secret and used
+   algorithm, are transmitted to admitted received through the FC_KEY
+   Section 10.3 on the unicast path.
+
+   Since no explicit path probing phase is used in Flexicast QUIC, the
+   receiver can use the dedicated protection key context whenever
+   receiving a packet from the flexicast flow directly after receiving
+   the FC_KEY frame from the source.
+
+9.2.  Nonce Calculation
+
+   Section 4 of [MULTIPATH-QUIC] further expands the computation of the
+   Nonce from Section 5.3 of [QUIC-TLS] to integrate the least
+   significant 32 bits of the Path ID to guarantee its uniqueness.  A
+   flexicast flow is shared among multiple receivers simultaneously,
+   thus requiring that all receivers share the same Path ID for the same
+   flexicast flow.  Since receivers are allowed to dynamically change
+   the flexicast flows they listen, it is impossible to ensure that all
+   receivers use the same Path ID for the same flexicast flow.
+
+   TODO: add example?
+
+   However, since each flexicast flow uses its own set of TLS keys, the
+   computation of the Nonce is decorelated between any pair of flexicast
+   flows, and between any flexicast flow and any unicast path with a
+   receiver.  It is therefore not mandatory anymore to use the Path ID
+   to ensure the uniqueness of the Nonce.
+
+   To remain compliant with Section 4.1 of [MULTIPATH-QUIC], Flexicast
+   QUIC still uses the Path ID to compute the Nonce.  However, to ensure
+   that all receivers use the same Path ID no matter the flexicast flow
+   they listen, the Path ID used for the nonce is always set to 1.
+
+9.3.  Key Update
+
+   TODO
+
+10.  New Frames
 
    All frames defined in this document MUST only be sent in 1-RTT
    packets.
@@ -630,7 +691,7 @@ Table of Contents
    the following frames on the Flexicast flow MUST be trated as a
    connection error of type FC_PROTOCOL_VIOLATION.
 
-9.1.  FC_ANNOUNCE frame
+10.1.  FC_ANNOUNCE frame
 
    The FC_ANNOUNCE frame informs the receiver that a Flexicast flow is
    available or updated.  FC_ANNOUNCE frames MUST NOT be sent by the
@@ -699,7 +760,7 @@ Table of Contents
    TODO: the frame should also contain a Status field to indicate if the
    flexicast flow is retired?
 
-9.2.  FC_STATE frame
+10.2.  FC_STATE frame
 
    The FC_STATE frame informs the endpoint of the state of the Flexicast
    receiver in the Flexicast flow.  FC_STATE frames MAY be sent by both
@@ -730,7 +791,7 @@ Table of Contents
    Sequence number: The monotically increasing sequence number related
    to the advertised Flexicast Flow ID.
 
-   Action: The bit-encoded action, defined in Section Section 9.2.1.
+   Action: The bit-encoded action, defined in Section Section 10.2.1.
 
    FC_STATE frames are ack-eliciting.  If a packet containing an
    FC_STATE frame is considered lost, the peer SHOULD repeat it.
@@ -744,7 +805,7 @@ Table of Contents
    change the status of the receiver within the Flexicast flow indicated
    by the Flexicast Flow ID.
 
-9.2.1.  FC_STATE actions
+10.2.1.  FC_STATE actions
 
    This section lists the defined Actions encoded in an FC_STATE frame.
    An endpoint receiving an unknown value MUST treat it as a connection
@@ -764,7 +825,7 @@ Table of Contents
    action LEAVE MAY be sent by both the receiver and the source, as
    detailed in Section 6.
 
-9.3.  FC_KEY frame
+10.3.  FC_KEY frame
 
    The FC_KEY frame informs a receiver with the decryption key of a
    Flexicast flow joined by the receiver.  FC_KEY frames MUST NOT be
@@ -808,7 +869,7 @@ Table of Contents
    Key: Byte-sequence of the decryption key of the Flexicast flow.
 
    Algorithm: The bit-encoded algorithm used for decryption, defined in
-   Section Section 9.3.1.
+   Section Section 10.3.1.
 
    FC_KEY frames are ack-eliciting.  If a packet containing an FC_STATE
    frame is considered lost, the peer SHOULD repeat it.
@@ -817,11 +878,11 @@ Table of Contents
    number to notify a new decryption key.  This mechanism can be used to
    provide backward and forward secrecy with dynamic Flexicast groups.
 
-9.3.1.  FC_KEY algorithms
+10.3.1.  FC_KEY algorithms
 
    TODO: define the bit-encoded algorithms.
 
-10.  Discussion
+11.  Discussion
 
    This document has defined a simple extension to Multipath QUIC that
    enables a QUIC connection to simulatenously use unicast paths and
@@ -858,21 +919,21 @@ Table of Contents
    congestion control mechanisms such as [RFC4654] will be required.
    The current prototype uses a variant of the CUBIC congestion control.
 
-11.  Security Considerations
+12.  Security Considerations
 
    To be provided in the next version of this document.
 
-12.  IANA Considerations
+13.  IANA Considerations
 
    IANA is requested to assign three new QUIC frame types from the "QUIC
    Frame Types" registry available at
    https://www.iana.org/assignments/quic/quic.xhtml#quic-frame-types
 
-   *  TBD-00 for the FC_ANNOUNCE frame defined in Section 9.1
+   *  TBD-00 for the FC_ANNOUNCE frame defined in Section 10.1
 
-   *  TBD-01 for the FC_STATE frame defined in Section 9.2
+   *  TBD-01 for the FC_STATE frame defined in Section 10.2
 
-   *  TBD-02 for the FC_KEY frame defined in Section 9.3
+   *  TBD-02 for the FC_KEY frame defined in Section 10.3
 
    IANA is requested to assign a new QUIC transport parameter from the
    "QUIC Transport Parameters" registry available at
@@ -881,9 +942,9 @@ Table of Contents
    *  TBD-03 for the flexicast_support transport parameter defined in
       Section 4
 
-13.  References
+14.  References
 
-13.1.  Normative References
+14.1.  Normative References
 
    [MULTIPATH-QUIC]
               Liu, Y., Ma, Y., De Coninck, Q., Bonaventure, O., Huitema,
@@ -891,6 +952,10 @@ Table of Contents
               in Progress, Internet-Draft, draft-ietf-quic-multipath-10,
               8 July 2024, <https://datatracker.ietf.org/doc/html/draft-
               ietf-quic-multipath-10>.
+
+   [QUIC-TLS] Thomson, M., Ed. and S. Turner, Ed., "Using TLS to Secure
+              QUIC", RFC 9001, DOI 10.17487/RFC9001, May 2021,
+              <https://www.rfc-editor.org/rfc/rfc9001>.
 
    [QUIC-TRANSPORT]
               Iyengar, J., Ed. and M. Thomson, Ed., "QUIC: A UDP-Based
@@ -907,7 +972,7 @@ Table of Contents
               2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
               May 2017, <https://www.rfc-editor.org/rfc/rfc8174>.
 
-13.2.  Informative References
+14.2.  Informative References
 
    [DIOT]     Diot, C., Levine, B., Lyles, B., Kassem, H., and D.
               Balensiefen, "Deployment issues for the IP multicast
