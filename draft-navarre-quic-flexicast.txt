@@ -250,28 +250,21 @@ Table of Contents
    destination address, are advertised by the source on the unicast path
    using the new frames defined in this document (see Section 10).
 
-+----------------------------------------+       =======> flexicast flow
-|   +----------------------------+       |
-|   |                            |       |
-|   |     .......................|.......|...
-|   |     .  Multicast-network   |       |  .     <------> unicast path
-|   |     .                      |       |  .
-|   v     .  239.239.23.35:4433  v       |  .
-+-> S ==============+==========> R1      |  .
-    ^     .         \\                   v  .
-    |     .          +=================> R2 .
-    |     ...................................
-    |
-    |     ...................................
-    |     . Unicast-only network            .
-    +----------------------------> R3       .
-          .                                 .
-          ...................................
+   +----------------------------------------+
+   |   +----------------------------+       |    =======> flexicast flow
+   |   |                            |       |
+   |   |                            |       |    <------> unicast path
+   |   v      239.239.23.35:4433    v       |
+   +-> S ==============+==========> R1      |
+       ^               \\                   v
+       |                +=================> R2
+       |
+       +----------------------------> R3
 
-  Figure 2: A Flexicast QUIC connection is composed of two types of
-    paths: (1) one bidirectional, unique, unicast path between the
-  source and each receiver and (2) a flexicast flow from the source
-    to a set of receivers relyinf on a multicast distribution tree
+     Figure 2: A Flexicast QUIC connection is composed of two types of
+       paths: (1) one bidirectional, unique, unicast path between the
+     source and each receiver and (2) a flexicast flow from the source
+       to a set of receivers relyinf on a multicast distribution tree
 
    At any point in time, if the network condition of a receiver
    listening to the Flexicast flow degrades, e.g., because the

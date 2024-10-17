@@ -1397,23 +1397,16 @@ by the source on the unicast path using the new frames defined in this document 
 <figure id="figure-2">
         <div class="alignLeft art-text artwork" id="section-3-10.1">
 <pre>
-+----------------------------------------+       =======&gt; flexicast flow
-|   +----------------------------+       |
++----------------------------------------+
+|   +----------------------------+       |    =======&gt; flexicast flow
 |   |                            |       |
-|   |     .......................|.......|...
-|   |     .  Multicast-network   |       |  .     &lt;------&gt; unicast path
-|   |     .                      |       |  .
-|   v     .  239.239.23.35:4433  v       |  .
-+-&gt; S ==============+==========&gt; R1      |  .
-    ^     .         \\                   v  .
-    |     .          +=================&gt; R2 .
-    |     ...................................
+|   |                            |       |    &lt;------&gt; unicast path
+|   v      239.239.23.35:4433    v       |
++-&gt; S ==============+==========&gt; R1      |
+    ^               \\                   v
+    |                +=================&gt; R2
     |
-    |     ...................................
-    |     . Unicast-only network            .
-    +----------------------------&gt; R3       .
-          .                                 .
-          ...................................
+    +----------------------------&gt; R3
 </pre>
 </div>
 <figcaption><a href="#figure-2" class="selfRef">Figure 2</a>:
