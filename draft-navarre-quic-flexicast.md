@@ -34,6 +34,7 @@ author:
 normative:
   RFC2119:
   QUIC-TRANSPORT: rfc9000
+  QUIC-TLS: rfc9001
   MULTIPATH-QUIC: I-D.ietf-quic-multipath
 
 informative:
@@ -264,6 +265,8 @@ security keys and shares them using the FC_KEY frame (see {{fc-key-frame}}) to a
 the unicast path. Since this frame is sent over the unicast paths, it is authenticated
 and encrypted using the TLS keys associated to each unicast path.
 
+{{sec-packet-protection}} gives more details on the changes from {{MULTIPATH-QUIC}} to protect packets sent on the flexicast flow.
+
 # Handshake Negotiation and Transport parameter {#sec-handshake}
 
 This extension defines a new transport parameter, used to negotiate the use of the flexicast extensiong during the connection handshake, as specified in {{QUIC-TRANSPORT}}.
@@ -424,6 +427,35 @@ Since the Flexicast QUIC source can unilaterally evict such receivers, it can ad
 
 A mix of both approaches is also possible. A Flexicast QUIC source may expose multiple flexicast flow, each operating at different bit-rate windows. For example, a first window would operate at a minimum bit-rate of 2 Mbps and a maximum bit-rate of 5 Mbps; another flexicast flow would operate between 5 Mbps and 10 Mbps,...
 Receivers falling below the 2 Mbps bit-rate SHOULD be evicted from flexicast delivery; a Flexicast QUIC source MAY decide to continue the delivery through the unicast path.
+
+# Packet protection {#sec-packet-protection}
+
+Packet protection for QUIC version 1 is specified in {{Section 5 of QUIC-TLS}}.
+{{Section 4 of MULTIPATH-QUIC}} further expands this design when multiple paths with different packet number spaces are used.
+Because the flexicast flow is shared among multiple receivers, this document modifies the design from {{Section 4 of MULTIPATH-QUIC}}.
+
+## Protection Keys
+
+This document extends the design from {{MULTIPATH-QUIC}} by requiring that all flexicast flows use different TLS protection keys. Of course, these protections keys MUST be different from the protection keys derived during the handshake between the source and any receiver.
+
+The per-flexicast flow protection keys are derived by the Flexicast QUIC source. The required material, e.g., master secret and used algorithm, are transmitted to admitted received through the FC_KEY {{fc-key-frame}} on the unicast path.
+
+Since no explicit path probing phase is used in Flexicast QUIC, the receiver can use the dedicated protection key context whenever receiving a packet from the flexicast flow directly after receiving the FC_KEY frame from the source.
+
+## Nonce Calculation
+
+{{Section 4 of MULTIPATH-QUIC}} further expands the computation of the Nonce from {{Section 5.3 of QUIC-TLS}} to integrate the least significant 32 bits of the Path ID to guarantee its uniqueness.
+A flexicast flow is shared among multiple receivers simultaneously, thus requiring that all receivers share the same Path ID for the same flexicast flow. Since receivers are allowed to dynamically change the flexicast flows they listen, it is impossible to ensure that all receivers use the same Path ID for the same flexicast flow.
+
+TODO: add example?
+
+However, since each flexicast flow uses its own set of TLS keys, the computation of the Nonce is decorelated between any pair of flexicast flows, and between any flexicast flow and any unicast path with a receiver. It is therefore not mandatory anymore to use the Path ID to ensure the uniqueness of the Nonce.
+
+To remain compliant with {{Section 4.1 of MULTIPATH-QUIC}}, Flexicast QUIC still uses the Path ID to compute the Nonce. However, to ensure that all receivers use the same Path ID no matter the flexicast flow they listen, the Path ID used for the nonce is always set to 1.
+
+## Key Update
+
+TODO
 
 # New Frames {#sec-frames}
 
