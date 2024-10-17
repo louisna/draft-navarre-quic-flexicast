@@ -200,23 +200,16 @@ Flexicast flow-specific information, such as the IP multicast destination addres
 by the source on the unicast path using the new frames defined in this document (see {{sec-frames}}).
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-+----------------------------------------+       =======> flexicast flow
-|   +----------------------------+       |
++----------------------------------------+
+|   +----------------------------+       |    =======> flexicast flow
 |   |                            |       |
-|   |     .......................|.......|...
-|   |     .  Multicast-network   |       |  .     <------> unicast path
-|   |     .                      |       |  .
-|   v     .  239.239.23.35:4433  v       |  .
-+-> S ==============+==========> R1      |  .
-    ^     .         \\                   v  .
-    |     .          +=================> R2 .
-    |     ...................................
+|   |                            |       |    <------> unicast path
+|   v      239.239.23.35:4433    v       |
++-> S ==============+==========> R1      |
+    ^               \\                   v
+    |                +=================> R2
     |
-    |     ...................................
-    |     . Unicast-only network            .
-    +----------------------------> R3       .
-          .                                 .
-          ...................................
+    +----------------------------> R3
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 {: #fig-flexicast-2 title="A Flexicast QUIC connection is composed of two types of paths: (1) one bidirectional, unique, unicast path between the source and each receiver and (2) a flexicast flow from the source to a set of receivers relyinf on a multicast distribution tree"}
 
