@@ -751,4 +751,7 @@ https://www.iana.org/assignments/quic/quic.xhtml#quic-transport
 # Acknowledgments
 {:numbered="false"}
 
-TODO acknowledge.
+Louis Navarre is an F.R.S-FNRS Research Fellow.
+This work has been partially supported by the Walloon Region as part of the funding of the FRFS-WEL-T strategic axis.
+
+We thank Maxime Piraux for his review.
