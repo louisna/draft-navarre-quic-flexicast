@@ -3,9 +3,10 @@
 
 
 QUIC                                                          L. Navarre
-Internet-Draft                                            O. Bonaventure
-Intended status: Experimental                                  UCLouvain
-Expires: 21 April 2025                                   18 October 2024
+Internet-Draft                                                 UCLouvain
+Intended status: Experimental                             O. Bonaventure
+Expires: 22 April 2025                                 UCLouvain & WELRI
+                                                         19 October 2024
 
 
     Flexicast QUIC: combining unicast and multicast in a single QUIC
@@ -49,7 +50,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 21 April 2025.
+   This Internet-Draft will expire on 22 April 2025.
 
 Copyright Notice
 
@@ -1164,9 +1165,11 @@ Authors' Addresses
 
    Louis Navarre
    UCLouvain
+   Belgium
    Email: louis.navarre@uclouvain.be
 
 
    Olivier Bonaventure
-   UCLouvain
+   UCLouvain & WELRI
+   Belgium
    Email: olivier.bonaventure@uclouvain.be
