@@ -26,9 +26,11 @@ venue:
 author:
  -  fullname: Louis Navarre
     organization: UCLouvain
+    country: Belgium	
     email: louis.navarre@uclouvain.be
  -  fullname: Olivier Bonaventure
-    organization: UCLouvain
+    organization: UCLouvain & WELRI
+    country: Belgium
     email: olivier.bonaventure@uclouvain.be
 
 normative:
