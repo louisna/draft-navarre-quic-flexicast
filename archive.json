@@ -1,7 +1,7 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2025-01-30T00:43:32.083378+00:00",
-  "repo": "louisna/draft-navarre-quic-flexicast",
+  "timestamp": "2025-07-08T00:58:02.511033+00:00",
+  "repo": "IPNetworkingLab/draft-navarre-quic-flexicast",
   "labels": [
     {
       "name": "bug",
@@ -55,19 +55,19 @@
       "number": 1,
       "id": "PR_kwDOKWZDcM5-rBw8",
       "title": "Add handshake negotiation",
-      "url": "https://github.com/louisna/draft-navarre-quic-flexicast/pull/1",
+      "url": "https://github.com/IPNetworkingLab/draft-navarre-quic-flexicast/pull/1",
       "state": "CLOSED",
       "author": "louisna",
-      "authorAssociation": "OWNER",
+      "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "",
       "createdAt": "2024-10-15T12:53:37Z",
       "updatedAt": "2024-10-16T09:42:12Z",
-      "baseRepository": "louisna/draft-navarre-quic-flexicast",
+      "baseRepository": "IPNetworkingLab/draft-navarre-quic-flexicast",
       "baseRefName": "main",
       "baseRefOid": "013828ee206721fb4c16f033fbd7d95109dcbb63",
-      "headRepository": "louisna/draft-navarre-quic-flexicast",
+      "headRepository": "IPNetworkingLab/draft-navarre-quic-flexicast",
       "headRefName": "frames",
       "headRefOid": "4b7c2cef307c91058cdb429daa384a7bd27b4c30",
       "closedAt": "2024-10-16T09:33:20Z",
@@ -81,19 +81,19 @@
       "number": 2,
       "id": "PR_kwDOKWZDcM5-zLEc",
       "title": "Add more details to the protocol",
-      "url": "https://github.com/louisna/draft-navarre-quic-flexicast/pull/2",
+      "url": "https://github.com/IPNetworkingLab/draft-navarre-quic-flexicast/pull/2",
       "state": "CLOSED",
       "author": "louisna",
-      "authorAssociation": "OWNER",
+      "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "",
       "createdAt": "2024-10-16T09:33:48Z",
       "updatedAt": "2024-10-16T09:42:12Z",
-      "baseRepository": "louisna/draft-navarre-quic-flexicast",
+      "baseRepository": "IPNetworkingLab/draft-navarre-quic-flexicast",
       "baseRefName": "main",
       "baseRefOid": "0efca3e8e5ce94454b3f78690f0a8e5903c1bd98",
-      "headRepository": "louisna/draft-navarre-quic-flexicast",
+      "headRepository": "IPNetworkingLab/draft-navarre-quic-flexicast",
       "headRefName": "frames",
       "headRefOid": "4b7c2cef307c91058cdb429daa384a7bd27b4c30",
       "closedAt": "2024-10-16T09:34:27Z",
@@ -102,6 +102,48 @@
       "mergeCommit": null,
       "comments": [],
       "reviews": []
+    },
+    {
+      "number": 3,
+      "id": "PR_kwDOKWZDcM6dtWW3",
+      "title": "Update draft-navarre-quic-flexicast.md",
+      "url": "https://github.com/IPNetworkingLab/draft-navarre-quic-flexicast/pull/3",
+      "state": "MERGED",
+      "author": "obonaventure",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "small changes and typos",
+      "createdAt": "2025-07-07T08:29:10Z",
+      "updatedAt": "2025-07-07T08:35:00Z",
+      "baseRepository": "IPNetworkingLab/draft-navarre-quic-flexicast",
+      "baseRefName": "main",
+      "baseRefOid": "5ed9a5f1cef7cd50bfc1db9e63a0eba739b6b2a3",
+      "headRepository": "IPNetworkingLab/draft-navarre-quic-flexicast",
+      "headRefName": "obonaventure-patch-1-1",
+      "headRefOid": "23ed4708b5a2cb24f63540b61b25af659380a295",
+      "closedAt": "2025-07-07T08:35:00Z",
+      "mergedAt": "2025-07-07T08:35:00Z",
+      "mergedBy": "louisna",
+      "mergeCommit": {
+        "oid": "978fbf3172b456f977a5e09c22fb355bb142ce3c"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "PRR_kwDOKWZDcM6yYdnY",
+          "commit": {
+            "abbreviatedOid": "23ed470"
+          },
+          "author": "louisna",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2025-07-07T08:34:43Z",
+          "updatedAt": "2025-07-07T08:34:43Z",
+          "comments": []
+        }
+      ]
     }
   ]
 }
